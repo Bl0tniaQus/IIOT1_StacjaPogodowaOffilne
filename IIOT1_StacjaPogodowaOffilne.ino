@@ -127,7 +127,10 @@ void screen1()
     M5.Lcd.setTextColor(YELLOW);
     M5.Lcd.printf("%d.%d.%d", getDay(), getMonth(),getYear());
     M5.Lcd.setCursor(0,70);
-    M5.Lcd.printf("%d:%d", getHours(), getMinutes());
+    char czas[10];
+    M5.Lcd.setTextDatum(BC_DATUM);
+    sprintf(czas,"%d:%d",getHours(),getMinutes());
+    M5.Lcd.drawString(czas,160,240,1);
     }
   if ((millis()-timer1>=timerLimit1)||(millis()-timer1<0)) {menu_stan = 2; drawScreen=1; timer1=millis();}
   else if (M5.BtnA.wasPressed() || M5.BtnB.wasPressed() || M5.BtnC.wasPressed()) {menu_stan = 6; drawScreen=1; timer2 = millis();}
