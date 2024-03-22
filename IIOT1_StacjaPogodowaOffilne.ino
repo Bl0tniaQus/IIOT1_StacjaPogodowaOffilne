@@ -35,10 +35,9 @@ void countTimers();
 void setup() {
   // put your setup code here, to run once:
   Wire.begin(); // Wire init, adding the I2C bus.
-  qmp6988.init();
   M5.begin();
-  M5.Lcd.setTextSize(5);
   setDate();
+  qmp6988.init();
 }
 
 void loop() {
@@ -99,7 +98,7 @@ void setDate() {
   M5.Rtc.SetTime(&RTCTime); //and writes the set time to the real time clock.  并将设置的时间写入实时时钟
 
   RTCDate.Year = 2023;  //Set the date.  设置日期
-  RTCDate.Month = 9;
+  RTCDate.Month = 10;
   RTCDate.Date = 15;
   M5.Rtc.SetDate(&RTCDate);}
 int getYear() {readSystemDate();return RTCDate.Year;}
@@ -122,15 +121,18 @@ void screen1()
 {
   if (drawScreen) {
     drawScreen--;
+    char czas_buf[10];
+    char data_buf[15];
+    sprintf(czas_buf,"%d:%d",getHours(),getMinutes());
+    sprintf(data_buf,"%d.%d.%d", getDay(), getMonth(),getYear());
     M5.Lcd.fillScreen(BLACK);
-    M5.Lcd.setCursor(0,20);
     M5.Lcd.setTextColor(YELLOW);
-    M5.Lcd.printf("%d.%d.%d", getDay(), getMonth(),getYear());
-    M5.Lcd.setCursor(0,70);
-    char czas[10];
-    M5.Lcd.setTextDatum(BC_DATUM);
-    sprintf(czas,"%d:%d",getHours(),getMinutes());
-    M5.Lcd.drawString(czas,160,240,1);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(4);
+    M5.Lcd.drawString(czas_buf,160,95,4);
+    M5.Lcd.setTextSize(2);
+    M5.Lcd.drawString(data_buf,160,175,4);
+    
     }
   if ((millis()-timer1>=timerLimit1)||(millis()-timer1<0)) {menu_stan = 2; drawScreen=1; timer1=millis();}
   else if (M5.BtnA.wasPressed() || M5.BtnB.wasPressed() || M5.BtnC.wasPressed()) {menu_stan = 6; drawScreen=1; timer2 = millis();}
@@ -140,12 +142,15 @@ void screen2()
   if (drawScreen) {
     drawScreen--;
     float temp = getTemperature();
+    char temp_buf[7];
+    sprintf(temp_buf,"%.1f", temp);
     M5.Lcd.fillScreen(BLACK);
-    M5.Lcd.setCursor(0,20);
     M5.Lcd.setTextColor(YELLOW);
-    M5.Lcd.printf("Temp.");
-    M5.Lcd.setCursor(0,70);
-    M5.Lcd.printf("%.1f C", temp);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.drawString("T [C]",160,40,4);
+    M5.Lcd.setTextSize(4);
+    M5.Lcd.drawString(temp_buf,160,145,4);
     }
   if ((millis()-timer1>=timerLimit1)||(millis()-timer1<0)) {menu_stan = 3; drawScreen=1; timer1=millis();}
   else if (M5.BtnA.wasPressed() || M5.BtnB.wasPressed() || M5.BtnC.wasPressed()) {menu_stan = 6; drawScreen=1; timer2 = millis();}
@@ -155,12 +160,15 @@ void screen3()
   if (drawScreen) {
     drawScreen--;
     float pres = getPressure();
+    char pres_buf[4];
+    sprintf(pres_buf,"%.0f", pres);
     M5.Lcd.fillScreen(BLACK);
-    M5.Lcd.setCursor(0,20);
     M5.Lcd.setTextColor(YELLOW);
-    M5.Lcd.printf("Pressure");
-    M5.Lcd.setCursor(0,70);
-    M5.Lcd.printf("%.0f hPa", pres);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.drawString("p [hPa]",160,40,4);
+    M5.Lcd.setTextSize(4);
+    M5.Lcd.drawString(pres_buf,160,145,4);
     }
   if ((millis()-timer1>=timerLimit1)||(millis()-timer1<0)) {menu_stan = 4; drawScreen=1; timer1=millis();}
   else if (M5.BtnA.wasPressed() || M5.BtnB.wasPressed() || M5.BtnC.wasPressed()) {menu_stan = 6; drawScreen=1; timer2 = millis();}
@@ -170,12 +178,15 @@ void screen4()
   if (drawScreen) {
     drawScreen--;
     float hum = getHumidity();
+    char hum_buf[4];
+    sprintf(hum_buf,"%.0f", hum);
     M5.Lcd.fillScreen(BLACK);
-    M5.Lcd.setCursor(0,20);
     M5.Lcd.setTextColor(YELLOW);
-    M5.Lcd.printf("Humidity");
-    M5.Lcd.setCursor(0,70);
-    M5.Lcd.printf("%.0f %%", hum);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.drawString("Hum. [%]",160,40,4);
+    M5.Lcd.setTextSize(5);
+    M5.Lcd.drawString(hum_buf,160,145,4);
     }
   if ((millis()-timer1>=timerLimit1)||(millis()-timer1<0)) {menu_stan = 1; drawScreen=1; timer1=millis();}
   else if (M5.BtnA.wasPressed() || M5.BtnB.wasPressed() || M5.BtnC.wasPressed()) {menu_stan = 6; drawScreen=1; timer2 = millis();}
