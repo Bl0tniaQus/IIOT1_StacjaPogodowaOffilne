@@ -36,7 +36,18 @@ void screen7(); //menu główne ustawienia
 void screen8(); //menu główne prognoza
 //ekrany statystyk
 //ekrany menu ustawień
-void screen9();
+void screen9(); //menu ustawien powrót
+void screen10(); //menu ustawien data
+void screen11(); //menu ustawien czas
+void screen12(); //menu ustawien progi
+//ekrany ustawień progów
+void screen13(); //menu ustawien progów powrót
+void screen14(); //temp lb
+void screen15(); //temp ub
+void screen16(); //pres lb
+void screen17(); //pres ub
+void screen18(); //hum lb
+void screen19(); //hum ub
 //ekrany prognozy
 
 
@@ -45,7 +56,7 @@ void setup() {
   // put your setup code here, to run once:
   Wire.begin(); // Wire init, adding the I2C bus.
   M5.begin();
-  setDate();
+  //setDate();
   qmp6988.init();
   temp_LB = 20; temp_UB = 24;
   hum_LB = 30; hum_UB = 50;
@@ -82,7 +93,19 @@ void loop() {
   break;  
   case 8:
   screen8();
-  break;    
+  break;
+  case 9:
+  screen9();
+  break;  
+  case 10:
+  screen10();
+  break;  
+  case 11:
+  screen11();
+  break;  
+  case 12:
+  screen12();
+  break;      
   }
   
 
@@ -297,6 +320,7 @@ void screen7()
     }
     if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {menu_stan = 6; drawScreen=1; timer2 = millis();}
+    else if (M5.BtnB.wasPressed()) {menu_stan = 10; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {menu_stan = 8; drawScreen=1; timer2 = millis();}
 }
 void screen8()
@@ -318,4 +342,87 @@ void screen8()
     if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {menu_stan = 7; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {menu_stan = 5; drawScreen=1; timer2 = millis();}
+}
+void screen9()
+{
+   if (drawScreen) {
+    drawScreen--;
+    M5.Lcd.fillScreen(BLACK);
+    M5.Lcd.setTextColor(WHITE);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(3);
+    M5.Lcd.drawString("Return",160,90,4);
+    M5.Lcd.setTextSize(2);
+    M5.Lcd.setTextDatum(BL_DATUM);
+    M5.Lcd.drawString("<",45,240,4);
+    M5.Lcd.setTextDatum(BC_DATUM);
+    M5.Lcd.drawString("OK",160,240,4);
+    M5.Lcd.setTextDatum(BR_DATUM);
+    M5.Lcd.drawString(">",275,240,4);
+    }
+    if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
+    else if (M5.BtnA.wasPressed()) {menu_stan = 12; drawScreen=1; timer2 = millis();}
+    else if (M5.BtnB.wasPressed()) {menu_stan = 7; drawScreen=1; timer2=0;}
+    else if (M5.BtnC.wasPressed()) {menu_stan = 10; drawScreen=1; timer2 = millis();}
+}
+void screen10()
+{
+  if (drawScreen) {
+    drawScreen--;
+    M5.Lcd.fillScreen(BLACK);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(3);
+    M5.Lcd.drawString("Set date",160,90,4);
+    M5.Lcd.setTextSize(2);
+    M5.Lcd.setTextDatum(BL_DATUM);
+    M5.Lcd.drawString("<",45,240,4);
+    M5.Lcd.setTextDatum(BC_DATUM);
+    M5.Lcd.drawString("OK",160,240,4);
+    M5.Lcd.setTextDatum(BR_DATUM);
+    M5.Lcd.drawString(">",275,240,4);
+    }
+    if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
+    else if (M5.BtnA.wasPressed()) {menu_stan = 9; drawScreen=1; timer2 = millis();}
+    else if (M5.BtnC.wasPressed()) {menu_stan = 11; drawScreen=1; timer2 = millis();}
+}
+void screen11()
+{
+  if (drawScreen) {
+    drawScreen--;
+    M5.Lcd.fillScreen(BLACK);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(3);
+    M5.Lcd.drawString("Set time",160,90,4);
+    M5.Lcd.setTextSize(2);
+    M5.Lcd.setTextDatum(BL_DATUM);
+    M5.Lcd.drawString("<",45,240,4);
+    M5.Lcd.setTextDatum(BC_DATUM);
+    M5.Lcd.drawString("OK",160,240,4);
+    M5.Lcd.setTextDatum(BR_DATUM);
+    M5.Lcd.drawString(">",275,240,4);
+    }
+    if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
+    else if (M5.BtnA.wasPressed()) {menu_stan = 10; drawScreen=1; timer2 = millis();}
+    else if (M5.BtnC.wasPressed()) {menu_stan = 12; drawScreen=1; timer2 = millis();}
+}
+void screen12()
+{
+  if (drawScreen) {
+    drawScreen--;
+    M5.Lcd.fillScreen(BLACK);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(3);
+    M5.Lcd.drawString("Set",160,60,4);
+    M5.Lcd.drawString("bounds",160,120,4);
+    M5.Lcd.setTextSize(2);
+    M5.Lcd.setTextDatum(BL_DATUM);
+    M5.Lcd.drawString("<",45,240,4);
+    M5.Lcd.setTextDatum(BC_DATUM);
+    M5.Lcd.drawString("OK",160,240,4);
+    M5.Lcd.setTextDatum(BR_DATUM);
+    M5.Lcd.drawString(">",275,240,4);
+    }
+    if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
+    else if (M5.BtnA.wasPressed()) {menu_stan = 11; drawScreen=1; timer2 = millis();}
+    else if (M5.BtnC.wasPressed()) {menu_stan = 9; drawScreen=1; timer2 = millis();}
 }
