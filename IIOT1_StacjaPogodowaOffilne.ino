@@ -9,7 +9,7 @@ int pomiary_stan=0;
 char disp_refresh=1; // Display refresh
 int drawScreen = 1;
 long timer1,timer2 = 0;
-int timerLimit1 = 5000,timerLimit2 = 25000;
+int timerLimit1 = 5000,timerLimit2 = 10000;
 float temp_UB,temp_LB,hum_UB,hum_LB,pres_UB,pres_LB;
 
 float getPressure();
@@ -67,7 +67,7 @@ void setup() {
   qmp6988.init();
   temp_LB = 20; temp_UB = 24;
   hum_LB = 30; hum_UB = 50;
-  pres_LB = 950; pres_UB = 1050;
+  pres_LB = 950; pres_UB = 1030;
 }
 
 void loop() {
@@ -358,7 +358,7 @@ void screen9()
     }
     if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {menu_stan = 12; drawScreen=1; timer2 = millis();}
-    else if (M5.BtnB.wasReleased()) {menu_stan = 7; drawScreen=1; timer2=0;}
+    else if (M5.BtnB.wasReleased()) {menu_stan = 7; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {menu_stan = 10; drawScreen=1; timer2 = millis();}
 }
 void screen10()
@@ -420,7 +420,7 @@ void screen12()
     }
     if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {menu_stan = 11; drawScreen=1; timer2 = millis();}
-    else if (M5.BtnB.wasReleased()) {menu_stan = 14; drawScreen=1; timer2=0;}
+    else if (M5.BtnB.wasReleased()) {menu_stan = 14; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {menu_stan = 9; drawScreen=1; timer2 = millis();}
 }
 void screen13()
@@ -442,7 +442,7 @@ void screen13()
     }
     if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {menu_stan = 19; drawScreen=1; timer2 = millis();}
-    else if (M5.BtnB.wasReleased()) {menu_stan = 12; drawScreen=1; timer2=0;}
+    else if (M5.BtnB.wasReleased()) {menu_stan = 12; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {menu_stan = 14; drawScreen=1; timer2 = millis();}
 }
 void screen14()
@@ -464,7 +464,7 @@ void screen14()
     }
     if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {menu_stan = 13; drawScreen=1; timer2 = millis();}
-    else if (M5.BtnB.wasReleased()) {menu_stan = 20; drawScreen=1; timer2=0;}
+    else if (M5.BtnB.wasReleased()) {menu_stan = 20; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {menu_stan = 15; drawScreen=1; timer2 = millis();}
 }
 void screen15()
@@ -486,7 +486,7 @@ void screen15()
     }
     if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {menu_stan = 14; drawScreen=1; timer2 = millis();}
-    else if (M5.BtnB.wasReleased()) {menu_stan = 21; drawScreen=1; timer2=0;}
+    else if (M5.BtnB.wasReleased()) {menu_stan = 21; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {menu_stan = 16; drawScreen=1; timer2 = millis();}
 }
 void screen16()
@@ -508,7 +508,7 @@ void screen16()
     }
     if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {menu_stan = 15; drawScreen=1; timer2 = millis();}
-    else if (M5.BtnB.wasReleased()) {menu_stan = 22; drawScreen=1; timer2=0;}
+    else if (M5.BtnB.wasReleased()) {menu_stan = 22; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {menu_stan = 17; drawScreen=1; timer2 = millis();}
 }
 void screen17()
@@ -530,7 +530,7 @@ void screen17()
     }
     if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {menu_stan = 16; drawScreen=1; timer2 = millis();}
-    else if (M5.BtnB.wasReleased()) {menu_stan = 23; drawScreen=1; timer2=0;}
+    else if (M5.BtnB.wasReleased()) {menu_stan = 23; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {menu_stan = 18; drawScreen=1; timer2 = millis();}
 }
 void screen18()
@@ -553,7 +553,7 @@ void screen18()
     }
     if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {menu_stan = 17; drawScreen=1; timer2 = millis();}
-    else if (M5.BtnB.wasReleased()) {menu_stan = 24; drawScreen=1; timer2=0;}
+    else if (M5.BtnB.wasReleased()) {menu_stan = 24; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {menu_stan = 19; drawScreen=1; timer2 = millis();}
 }
 void screen19()
@@ -576,7 +576,7 @@ void screen19()
     }
     if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {menu_stan = 18; drawScreen=1; timer2 = millis();}
-    else if (M5.BtnB.wasReleased()) {menu_stan = 25; drawScreen=1; timer2=0;}
+    else if (M5.BtnB.wasReleased()) {menu_stan = 25; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {menu_stan = 13; drawScreen=1; timer2 = millis();}
 }
 void screen20()
@@ -602,7 +602,7 @@ void screen20()
     }
   if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {temp_LB--;drawScreen=1; timer2 = millis();}
-    else if (M5.BtnB.wasReleased()) {menu_stan = 14; drawScreen=1; timer2=0;}
+    else if (M5.BtnB.wasReleased()) {menu_stan = 14; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {temp_LB++;drawScreen=1; timer2 = millis();}
 }
 void screen21()
@@ -628,7 +628,7 @@ void screen21()
     }
   if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {temp_UB--;drawScreen=1; timer2 = millis();}
-    else if (M5.BtnB.wasReleased()) {menu_stan = 15; drawScreen=1; timer2=0;}
+    else if (M5.BtnB.wasReleased()) {menu_stan = 15; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {temp_UB++;drawScreen=1; timer2 = millis();}
 }
 void screen22()
@@ -654,7 +654,7 @@ void screen22()
     }
   if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {if(pres_LB>=1){pres_LB--;}drawScreen=1; timer2 = millis();}
-    else if (M5.BtnB.wasReleased()) {menu_stan = 16; drawScreen=1; timer2=0;}
+    else if (M5.BtnB.wasReleased()) {menu_stan = 16; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {pres_LB++;drawScreen=1; timer2 = millis();}
 }
 void screen23()
@@ -680,7 +680,7 @@ void screen23()
     }
   if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {if(pres_UB>=1){pres_UB--;}drawScreen=1; timer2 = millis();}
-    else if (M5.BtnB.wasReleased()) {menu_stan = 17; drawScreen=1; timer2=0;}
+    else if (M5.BtnB.wasReleased()) {menu_stan = 17; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {pres_UB++;drawScreen=1; timer2 = millis();}
 }
 void screen24()
@@ -706,7 +706,7 @@ void screen24()
     }
   if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {if(hum_LB>=1){hum_LB--;}drawScreen=1; timer2 = millis();}
-    else if (M5.BtnB.wasReleased()) {menu_stan = 18; drawScreen=1; timer2=0;}
+    else if (M5.BtnB.wasReleased()) {menu_stan = 18; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {if(hum_LB<100){hum_LB++;}drawScreen=1; timer2 = millis();}
 }
 void screen25()
@@ -732,6 +732,6 @@ void screen25()
     }
   if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {if(hum_UB>=1){hum_UB--;}drawScreen=1; timer2 = millis();}
-    else if (M5.BtnB.wasReleased()) {menu_stan = 19; drawScreen=1; timer2=0;}
+    else if (M5.BtnB.wasReleased()) {menu_stan = 19; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {if(hum_UB<100){hum_UB++;}drawScreen=1; timer2 = millis();}
 }
