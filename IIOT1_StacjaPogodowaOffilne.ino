@@ -12,6 +12,16 @@ long timer1,timer2 = 0;
 int timerLimit1 = 5000,timerLimit2 = 8000;
 float temp_UB,temp_LB,hum_UB,hum_LB,pres_UB,pres_LB;
 bool error;
+//tablice z danymi historycznymi
+int n_hours = 0;
+int n_temps = 0;
+int n_pressures = 0;
+int n_humidities = 0;
+float* temps; //temperatury z trzech ostatnich dni
+float* pressures; //ciśnienia z trzech ostatnich dni
+float* humidities; //wilgotności z trzech ostatnich dni
+int* hours; //godziny pomiarów
+
 float getPressure();
 float getTemperature();
 float getHumidity();
@@ -26,6 +36,11 @@ int getDay();
 int getHours();
 int getMinutes();
 int getSeconds();
+void showBatteryLevel();
+void readHours();
+void readTemps();
+void readPressures();
+void readHumidities();
 //ekrany główne
 void screen1(); //data i czas
 void screen2(); //temperatura
@@ -80,17 +95,23 @@ void setup() {
   // put your setup code here, to run once:
   Wire.begin(); // Wire init, adding the I2C bus.
   M5.begin();
+  SD.begin();
   qmp6988.init();
   temp_LB = 20; temp_UB = 24;
   hum_LB = 30; hum_UB = 50;
   pres_LB = 950; pres_UB = 1030;
+  temps = new float[0];
+  pressures = new float[0];
+  humidities = new float[0];
+  hours = new int[0];
+  timer1 = millis();
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
   M5.update();
   if(disp_refresh){ M5.Lcd.fillScreen(BLACK); disp_refresh = 0; }
-  if (menu_stan!=30&&menu_stan!=31&&menu_stan!=32) {error = false;}
+  if (menu_stan!=30&&menu_stan!=31&&menu_stan!=32&&menu_stan!=35&&menu_stan!=36&&menu_stan!=37) {error = false;}
   switch(menu_stan)
   {
   case 1:screen1();break;
@@ -185,11 +206,179 @@ int getDay() {readSystemDate();return RTCDate.Date;}
 int getHours() {readSystemTime();return RTCTime.Hours;}
 int getMinutes() {readSystemTime();return RTCTime.Minutes;}
 int getSeconds() {readSystemTime();return RTCTime.Seconds;}
-void countTimers() {timer1 = millis(); timer2 = millis();}
-
+void showBatteryLevel() 
+{  
+  double voltage = M5.Axp.GetBatVoltage();
+  double percentage;
+  if (voltage < 3.2) {percentage = 0;}
+  else {percentage = (voltage - 3.2) * 100;}
+  char battery_buf[6];
+  sprintf(battery_buf,"%d %%",(int)percentage);
+  M5.Lcd.setTextColor(WHITE,BLUE);
+  M5.Lcd.setTextSize(1);
+  M5.Lcd.setTextDatum(TR_DATUM);
+  M5.Lcd.drawString(battery_buf,320,0,4);
+}
+void readHours()
+{
+    char number[2];
+    int digit = 0;
+    n_hours = 0;
+  File f = SD.open("/hours.txt", FILE_READ);
+  if (f) {
+      char znak;
+      while (f.available()){
+      znak = f.read();
+      if (znak!='\n'&&znak!='\0')
+      {
+        number[digit] = (char)znak;
+        digit++;
+      }
+      else 
+        {
+           digit=0;
+           n_hours++;
+           int *hours_new = new int[n_hours];
+           int hour = atoi(number);
+           if (n_hours==1) {hours_new[0] = hour;}
+            else
+            {
+            for (int i=0;i<n_hours-1;i++)
+            {
+                hours_new[i] = hours[i];
+            }
+            hours_new[n_hours-1] = hour;
+            }
+            delete [] hours;
+            hours = hours_new;
+        }    
+      }
+    f.close();
+  } else {
+    return;
+  }
+}
+void readTemps()
+{
+    char number[7];
+    int digit = 0;
+    n_temps = 0;
+  File f = SD.open("/temperature.txt", FILE_READ);
+  if (f) {
+      char znak;
+      while (f.available()){
+      znak = f.read();
+      if (znak!='\n'&&znak!='\0')
+      {
+        number[digit] = (char)znak;
+        digit++;
+      }
+      else 
+        {
+           digit=0;
+           n_temps++;
+           float *temps_new = new float[n_temps];
+           float temp = atof(number);
+           if (n_temps==1) {temps_new[0] = temp;}
+            else
+            {
+            for (int i=0;i<n_temps-1;i++)
+            {
+                temps_new[i] = temps[i];
+            }
+            temps_new[n_temps-1] = temp;
+            }
+            delete [] temps;
+            temps = temps_new;
+        }    
+      }
+    f.close();
+  } else {
+    return;
+  }
+}
+void readPressures()
+{
+    char number[4];
+    int digit = 0;
+    n_pressures = 0;
+  File f = SD.open("/pressure.txt", FILE_READ);
+  if (f) {
+      char znak;
+      while (f.available()){
+      znak = f.read();
+      if (znak!='\n'&&znak!='\0')
+      {
+        number[digit] = (char)znak;
+        digit++;
+      }
+      else 
+        {
+           digit=0;
+           n_pressures++;
+           float *pressures_new = new float[n_pressures];
+           float pressure = atof(number);
+           if (n_pressures==1) {pressures_new[0] = pressure;}
+            else
+            {
+            for (int i=0;i<n_pressures-1;i++)
+            {
+                pressures_new[i] = pressures[i];
+            }
+            pressures_new[n_pressures-1] = pressure;
+            }
+            delete [] pressures;
+            pressures = pressures_new;
+        }    
+      }
+    f.close();
+  } else {
+    return;
+  }
+}
+void readHumidities()
+{
+    char number[4];
+    int digit = 0;
+    n_humidities = 0;
+  File f = SD.open("/humidity.txt", FILE_READ);
+  if (f) {
+      char znak;
+      while (f.available()){
+      znak = f.read();
+      if (znak!='\n'&&znak!='\0')
+      {
+        number[digit] = (char)znak;
+        digit++;
+      }
+      else 
+        {
+           digit=0;
+           n_humidities++;
+           float *humidities_new = new float[n_humidities];
+           float humidity = atof(number);
+           if (n_humidities==1) {humidities_new[0] = humidity;}
+            else
+            {
+            for (int i=0;i<n_humidities-1;i++)
+            {
+                humidities_new[i] = humidities[i];
+            }
+            humidities_new[n_humidities-1] = humidity;
+            }
+            delete [] humidities;
+            humidities = humidities_new;
+        }    
+      }
+    f.close();
+  } else {
+    return;
+  }
+}
 void screen1()
 {
   if (drawScreen) {
+    
     drawScreen--;
     int hours = getHours(); int minutes = getMinutes();
     int day = getDay(); int month = getMonth(); int year = getYear();
@@ -206,33 +395,37 @@ void screen1()
     sprintf(year_buf,"%d",year);
     strcpy(time_buf,hours_buf);strcat(time_buf,minutes_buf);
     strcpy(date_buf,day_buf);strcat(date_buf,month_buf);strcat(date_buf,year_buf);
-    M5.Lcd.setTextColor(WHITE);
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
+    M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(4);
     M5.Lcd.drawString(time_buf,160,95,4);
     M5.Lcd.setTextSize(2);
     M5.Lcd.drawString(date_buf,160,175,4);
-    M5.Lcd.setTextSize(2);
+    M5.Lcd.setTextSize(1);
     M5.Lcd.setTextDatum(BL_DATUM);
-    M5.Lcd.drawString(".",45,240,4);
+    M5.Lcd.drawString("<",45,240,4);
     M5.Lcd.setTextDatum(BC_DATUM);
-    M5.Lcd.drawString(".",160,240,4);
+    M5.Lcd.drawString("...",160,240,4);
     M5.Lcd.setTextDatum(BR_DATUM);
-    M5.Lcd.drawString(".",275,240,4);
+    M5.Lcd.drawString(">",275,240,4);
     
     }
-  if ((millis()-timer1>=timerLimit1)||(millis()-timer1<0)) {menu_stan = 2; drawScreen=1; timer1=millis();}
-  else if (M5.BtnA.wasPressed() || M5.BtnB.wasPressed() || M5.BtnC.wasPressed()) {menu_stan = 6; drawScreen=1; timer2 = millis();}
+  if ((millis()-timer1>=timerLimit1)||(millis()-timer1<0)||M5.BtnC.wasPressed()) {menu_stan = 2; drawScreen=1; timer1=millis();}
+  else if (M5.BtnB.wasPressed()) {menu_stan = 6; drawScreen=1; timer2 = millis();}
+  else if (M5.BtnA.wasPressed()) {menu_stan = 4; drawScreen=1; timer1 = millis();}
 }
 void screen2()
 {
   if (drawScreen) {
     drawScreen--;
+    showBatteryLevel();
     float temp = getTemperature();
     char temp_buf[7];
     sprintf(temp_buf,"%.1f", temp);
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(YELLOW);
     M5.Lcd.setTextDatum(MC_DATUM);
     if (temp > temp_UB || temp < temp_LB) {M5.Lcd.fillRect(0, 70, 320, 110, MAROON);}
@@ -240,25 +433,28 @@ void screen2()
     M5.Lcd.drawString("T [C]",160,40,4);
     M5.Lcd.setTextSize(4);
     M5.Lcd.drawString(temp_buf,160,135,4);
-    M5.Lcd.setTextSize(2);
+    M5.Lcd.setTextSize(1);
     M5.Lcd.setTextDatum(BL_DATUM);
-    M5.Lcd.drawString(".",45,240,4);
+    M5.Lcd.drawString("<",45,240,4);
     M5.Lcd.setTextDatum(BC_DATUM);
-    M5.Lcd.drawString(".",160,240,4);
+    M5.Lcd.drawString("...",160,240,4);
     M5.Lcd.setTextDatum(BR_DATUM);
-    M5.Lcd.drawString(".",275,240,4);
+    M5.Lcd.drawString(">",275,240,4);
     }
-  if ((millis()-timer1>=timerLimit1)||(millis()-timer1<0)) {menu_stan = 3; drawScreen=1; timer1=millis();}
-  else if (M5.BtnA.wasPressed() || M5.BtnB.wasPressed() || M5.BtnC.wasPressed()) {menu_stan = 6; drawScreen=1; timer2 = millis();}
+  if ((millis()-timer1>=timerLimit1)||(millis()-timer1<0)||M5.BtnC.wasPressed()) {menu_stan = 3; drawScreen=1; timer1=millis();}
+  else if (M5.BtnB.wasPressed()) {menu_stan = 6; drawScreen=1; timer2 = millis();}
+  else if (M5.BtnA.wasPressed()) {menu_stan = 1; drawScreen=1; timer1 = millis();}
 }
 void screen3()
 {
   if (drawScreen) {
     drawScreen--;
     float pres = getPressure();
+    
     char pres_buf[5];
     sprintf(pres_buf,"%.0f", pres);
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(GREEN);
     if (pres > pres_UB || pres < pres_LB) {M5.Lcd.fillRect(0, 70, 320, 110, MAROON);}
     M5.Lcd.setTextDatum(MC_DATUM);
@@ -266,48 +462,53 @@ void screen3()
     M5.Lcd.drawString("p [hPa]",160,40,4);
     M5.Lcd.setTextSize(4);
     M5.Lcd.drawString(pres_buf,160,135,4);
-    M5.Lcd.setTextSize(2);
+    M5.Lcd.setTextSize(1);
     M5.Lcd.setTextDatum(BL_DATUM);
-    M5.Lcd.drawString(".",45,240,4);
+    M5.Lcd.drawString("<",45,240,4);
     M5.Lcd.setTextDatum(BC_DATUM);
-    M5.Lcd.drawString(".",160,240,4);
+    M5.Lcd.drawString("...",160,240,4);
     M5.Lcd.setTextDatum(BR_DATUM);
-    M5.Lcd.drawString(".",275,240,4);
+    M5.Lcd.drawString(">",275,240,4);
     }
-  if ((millis()-timer1>=timerLimit1)||(millis()-timer1<0)) {menu_stan = 4; drawScreen=1; timer1=millis();}
-  else if (M5.BtnA.wasPressed() || M5.BtnB.wasPressed() || M5.BtnC.wasPressed()) {menu_stan = 6; drawScreen=1; timer2 = millis();}
+  if ((millis()-timer1>=timerLimit1)||(millis()-timer1<0)||M5.BtnC.wasPressed()) {menu_stan = 4; drawScreen=1; timer1=millis();}
+  else if (M5.BtnB.wasPressed()) {menu_stan = 6; drawScreen=1; timer2 = millis();}
+  else if (M5.BtnA.wasPressed()) {menu_stan = 2; drawScreen=1; timer1 = millis();}
 }
 void screen4()
 {
   if (drawScreen) {
     drawScreen--;
+    
     float hum = getHumidity();
     char hum_buf[4];
     sprintf(hum_buf,"%.0f", hum);
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(CYAN);
     if (hum > hum_UB || hum < hum_LB) {M5.Lcd.fillRect(0, 70, 320, 110, MAROON);}
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(1);
     M5.Lcd.drawString("Hum. [%]",160,40,4);
-    M5.Lcd.setTextSize(5);
+    M5.Lcd.setTextSize(4);
     M5.Lcd.drawString(hum_buf,160,135,4);
-    M5.Lcd.setTextSize(2);
+    M5.Lcd.setTextSize(1);
     M5.Lcd.setTextDatum(BL_DATUM);
-    M5.Lcd.drawString(".",45,240,4);
+    M5.Lcd.drawString("<",45,240,4);
     M5.Lcd.setTextDatum(BC_DATUM);
-    M5.Lcd.drawString(".",160,240,4);
+    M5.Lcd.drawString("...",160,240,4);
     M5.Lcd.setTextDatum(BR_DATUM);
-    M5.Lcd.drawString(".",275,240,4);
+    M5.Lcd.drawString(">",275,240,4);
     }
-  if ((millis()-timer1>=timerLimit1)||(millis()-timer1<0)) {menu_stan = 1; drawScreen=1; timer1=millis();}
-  else if (M5.BtnA.wasPressed() || M5.BtnB.wasPressed() || M5.BtnC.wasPressed()) {menu_stan = 6; drawScreen=1; timer2 = millis();}
+  if ((millis()-timer1>=timerLimit1)||(millis()-timer1<0)||M5.BtnC.wasPressed()) {menu_stan = 1; drawScreen=1; timer1=millis();}
+  else if (M5.BtnB.wasPressed()) {menu_stan = 6; drawScreen=1; timer2 = millis();}
+  else if (M5.BtnA.wasPressed()) {menu_stan = 3; drawScreen=1; timer1 = millis();}
 }
 void screen5()
 {
   if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
@@ -330,6 +531,7 @@ void screen6()
   if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
@@ -352,6 +554,7 @@ void screen7()
   if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
@@ -374,6 +577,8 @@ void screen8()
   if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
+    M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
     M5.Lcd.drawString("Forecast",160,90,4);
@@ -394,6 +599,7 @@ void screen9()
    if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
@@ -416,6 +622,8 @@ void screen10()
   if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
+    M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
     M5.Lcd.drawString("Set date",160,90,4);
@@ -437,6 +645,8 @@ void screen11()
   if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
+    M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
     M5.Lcd.drawString("Set time",160,90,4);
@@ -458,6 +668,8 @@ void screen12()
   if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
+    M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
     M5.Lcd.drawString("Set",160,60,4);
@@ -480,6 +692,7 @@ void screen13()
    if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
@@ -502,6 +715,7 @@ void screen14()
    if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
@@ -524,6 +738,7 @@ void screen15()
    if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
@@ -546,6 +761,7 @@ void screen16()
    if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
@@ -568,6 +784,7 @@ void screen17()
    if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
@@ -590,6 +807,7 @@ void screen18()
    if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
@@ -613,6 +831,7 @@ void screen19()
    if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
@@ -638,6 +857,7 @@ void screen20()
     char temp_buf[7];
     sprintf(temp_buf,"%.0f", temp_LB);
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(YELLOW);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(1);
@@ -664,6 +884,7 @@ void screen21()
     char temp_buf[7];
     sprintf(temp_buf,"%.0f", temp_UB);
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(YELLOW);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(1);
@@ -690,6 +911,7 @@ void screen22()
     char pres_buf[4];
     sprintf(pres_buf,"%.0f", pres_LB);
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(GREEN);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(1);
@@ -716,6 +938,7 @@ void screen23()
     char pres_buf[4];
     sprintf(pres_buf,"%.0f", pres_UB);
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(GREEN);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(1);
@@ -742,6 +965,7 @@ void screen24()
     char hum_buf[4];
     sprintf(hum_buf,"%.0f", hum_LB);
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(CYAN);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(1);
@@ -768,6 +992,7 @@ void screen25()
     char hum_buf[4];
     sprintf(hum_buf,"%.0f", hum_UB);
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(CYAN);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(1);
@@ -792,6 +1017,7 @@ void screen26()
    if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
@@ -814,6 +1040,7 @@ void screen27()
     if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
@@ -839,6 +1066,7 @@ void screen28()
    if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
@@ -861,6 +1089,7 @@ void screen29()
    if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
@@ -887,6 +1116,7 @@ void screen30()
     if (day<10) {sprintf(day_buf,"0%d", day);}
     else {sprintf(day_buf,"%d", day);}
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(1);
@@ -926,6 +1156,7 @@ void screen31()
     if (month<10) {sprintf(month_buf,"0%d", month);}
     else {sprintf(month_buf,"%d", month);}
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(1);
@@ -964,6 +1195,7 @@ void screen32()
     int year = getYear();
     sprintf(year_buf,"%d", year);
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(1);
@@ -999,6 +1231,7 @@ void screen33()
    if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
@@ -1021,6 +1254,7 @@ void screen34()
    if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
@@ -1043,6 +1277,7 @@ void screen35()
    if (drawScreen) {
     drawScreen--;
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(3);
@@ -1069,6 +1304,7 @@ void screen36()
     if (hours<10) {sprintf(hours_buf,"0%d", hours);}
     else {sprintf(hours_buf,"%d", hours);}
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(1);
@@ -1108,6 +1344,7 @@ void screen37()
     if (minutes<10) {sprintf(minutes_buf,"0%d", minutes);}
     else {sprintf(minutes_buf,"%d", minutes);}
     M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextSize(1);
