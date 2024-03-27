@@ -94,8 +94,7 @@ void screen38(); //menu statystyk powrót
 void screen39(); //temperatura stat 
 void screen40(); //temperatura wykres
 
-
-void countTimers();
+//todo dwa rodzaje progów, ekranik z aktualnymi ustawieniami, zabezpieczenia przed wpisaniem głupot, liczby na wykresie
 void setup() {
   // put your setup code here, to run once:
   Wire.begin(); // Wire init, adding the I2C bus.
@@ -171,7 +170,7 @@ float getTemperature()
   if(sht30.get()==0){
     float temp = sht30.cTemp;
     char buf[7];
-    sprintf(buf,"%1.f",temp);
+    sprintf(buf,"%.1f",temp);
     temp = atof(buf); return temp;
     }else{return 0;}
 }
