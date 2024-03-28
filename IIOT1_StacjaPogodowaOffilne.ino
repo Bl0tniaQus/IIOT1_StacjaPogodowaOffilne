@@ -43,6 +43,8 @@ void readHours();
 void readTemps();
 void readPressures();
 void readHumidities();
+bool checkFiles();
+void writeMeasurements();
 int getY(int val, int minval, int unit, int ymin);
 //ekrany główne
 void screen1(); //data i czas
@@ -113,8 +115,9 @@ void setup() {
   humidities = new int[0];
   hours = new int[0];
   timer1 = millis();
+  writeMeasurements();
 }
-
+//todo zapis na sd danych i ustawien, odczyt ustawien z sd, prognoza, komentarze i jest all
 void loop() {
    //put your main code here, to run repeatedly:
   M5.update();
@@ -402,6 +405,19 @@ void readHumidities()
   } else {
     return;
   }
+}
+bool checkFile(const char* filename)
+{
+  return SD.exists(filename);
+}
+void writeMeasurements()
+{
+  File hoursFile = SD.open("/hours.txt",FILE_WRITE);
+  hoursFile.println("10");
+  hoursFile.close();
+  File tempsFile = SD.open("/temperature.txt",FILE_WRITE);
+  tempsFile.println("-12.5");
+  tempsFile.close();
 }
 int getY(int val, int minval, int unit, int ymin)
 {
@@ -1598,7 +1614,7 @@ void screen38()
 }
 void screen39()
 {
-  float day_min,day_max,night_min,night_max, sum_night=0,sum_day=0, avg_night = 0,avg_day = 0;
+  float day_min = 0,day_max = 0,night_min = 0,night_max = 0, sum_night=0,sum_day=0, avg_night = 0,avg_day = 0;
   int n_day = 0, n_night = 0;
   if (drawScreen) {
     drawScreen--;
@@ -1680,7 +1696,7 @@ void screen39()
 }
 void screen40()
 {
-  float tmin,tmax;
+  float tmin = 0,tmax = 0;
   int nt = 0;
   if (drawScreen) {
     drawScreen--;
@@ -1707,14 +1723,18 @@ void screen40()
     M5.Lcd.drawString(buf,10,0,2);
     tmax = round(tmax);
     tmin = round(tmin);
-    int unit = 160/(tmax-tmin);
+    int unit;
+    if (tmax!=tmin) {unit = 160/(tmax-tmin);}
+    else {unit = 1;}
     int t1 = tmin + (tmax-tmin)/3;
     int t2 = tmax - (tmax-tmin)/3;
     
     M5.Lcd.drawLine(60, 20, 60, 189, YELLOW); // y
     M5.Lcd.drawLine(51, 180, 300, 180, YELLOW); //x
-    sprintf(buf, "%d",hours[0]);
+    if (n_hours>0) {
+     sprintf(buf, "%d",hours[0]);
     M5.Lcd.drawString(buf,60,198,2);
+    }
 
 
     int x = 60, y = getY(round(temps[0]),tmin,unit,180);
@@ -1770,7 +1790,7 @@ void screen40()
 }
 void screen41()
 {
-  int day_min,day_max,night_min,night_max, sum_night=0,sum_day=0;
+  int day_min = 0,day_max = 0,night_min = 0,night_max = 0, sum_night=0,sum_day=0;
   float avg_night = 0,avg_day = 0;
   int n_day = 0, n_night = 0;
   if (drawScreen) {
@@ -1851,7 +1871,7 @@ void screen41()
 }
 void screen42()
 {
-  int pmin,pmax;
+  int pmin = 0,pmax = 0;
   int np = 0;
   if (drawScreen) {
     drawScreen--;
@@ -1876,13 +1896,17 @@ void screen42()
     sprintf(buf, "p [hPa]");
     M5.Lcd.setTextSize(1);
     M5.Lcd.drawString(buf,10,0,2);
-    int unit = 160 / (pmax-pmin);
+    int unit;
+    if (pmax!=pmin) {unit = 160/(pmax-pmin);}
+    else {unit = 1;}
     int p1 = pmin + (pmax-pmin)/3;
     int p2 = pmax - (pmax-pmin)/3;
     M5.Lcd.drawLine(60, 20, 60, 189, GREEN); // y
     M5.Lcd.drawLine(51, 180, 300, 180, GREEN); //x
-    sprintf(buf, "%d",hours[0]);
+    if (n_hours>0) {
+     sprintf(buf, "%d",hours[0]);
     M5.Lcd.drawString(buf,60,198,2);
+    }
 
 
     int x = 60, y = getY(pressures[0],pmin,unit,180);
@@ -1931,7 +1955,7 @@ void screen42()
 }
 void screen43()
 {
-  int day_min,day_max,night_min,night_max, sum_night=0,sum_day=0;
+  int day_min = 0,day_max = 0,night_min = 0,night_max = 0, sum_night=0,sum_day=0;
   float avg_night = 0,avg_day = 0;
   int n_day = 0, n_night = 0;
   if (drawScreen) {
@@ -2012,7 +2036,7 @@ void screen43()
 }
 void screen44()
 {
-  int hmin,hmax;
+  int hmin = 0,hmax = 0;
   int nh = 0;
   if (drawScreen) {
     drawScreen--;
@@ -2037,15 +2061,17 @@ void screen44()
     sprintf(buf, "hum. [%%]");
     M5.Lcd.setTextSize(1);
     M5.Lcd.drawString(buf,10,0,2);
-    int unit = 160 / (hmax-hmin);
+    int unit;
+    if (hmax!=hmin) {unit = 160/(hmax-hmin);}
+    else {unit = 1;}
     int h1 = hmin + (hmax-hmin)/3;
     int h2 = hmax - (hmax-hmin)/3;
     M5.Lcd.drawLine(60, 20, 60, 189, CYAN); // y
     M5.Lcd.drawLine(51, 180, 300, 180, CYAN); //x
-    sprintf(buf, "%d",hours[0]);
+    if (n_hours>0) {
+     sprintf(buf, "%d",hours[0]);
     M5.Lcd.drawString(buf,60,198,2);
-
-
+    }
     int x = 60, y = getY(humidities[0],hmin,unit,180);
     for (int i = 1;i<nh;i++)
     {
