@@ -43,6 +43,7 @@ void readHours();
 void readTemps();
 void readPressures();
 void readHumidities();
+int getY(int val, int minval, int unit, int ymin);
 //ekrany główne
 void screen1(); //data i czas
 void screen2(); //temperatura
@@ -112,10 +113,10 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+   //put your main code here, to run repeatedly:
   M5.update();
   if(disp_refresh){ M5.Lcd.fillScreen(BLACK); disp_refresh = 0; }
-  if (menu_stan!=30&&menu_stan!=31&&menu_stan!=32&&menu_stan!=36&&menu_stan!=37) {error = false;}
+ if (menu_stan!=30&&menu_stan!=31&&menu_stan!=32&&menu_stan!=36&&menu_stan!=37) {error = false;}
   switch(menu_stan)
   {
   case 1:screen1();break;
@@ -159,9 +160,7 @@ void loop() {
   case 39:screen39();break;
   case 40:screen40();break;
   }
-
   
-
 
 }
 
@@ -268,6 +267,7 @@ void readHours()
             }
             delete [] hours;
             hours = hours_new;
+            memset(number,0,sizeof(number));
         }    
       }
     f.close();
@@ -307,6 +307,7 @@ void readTemps()
             }
             delete [] temps;
             temps = temps_new;
+            memset(number,0,sizeof(number));
         }    
       }
     f.close();
@@ -346,6 +347,7 @@ void readPressures()
             }
             delete [] pressures;
             pressures = pressures_new;
+            memset(number,0,sizeof(number));
         }    
       }
     f.close();
@@ -385,12 +387,17 @@ void readHumidities()
             }
             delete [] humidities;
             humidities = humidities_new;
+            memset(number,0,sizeof(number));
         }    
       }
     f.close();
   } else {
     return;
   }
+}
+int getY(int val, int minval, int unit, int ymin)
+{
+  return ymin - (val - minval) * unit;
 }
 void screen1()
 {
@@ -1498,7 +1505,8 @@ void screen39()
 }
 void screen40()
 {
-  float tmin,tmax,nt;
+  float tmin,tmax;
+  int nt = 0;
   if (drawScreen) {
     drawScreen--;
     readTemps();   
@@ -1519,27 +1527,61 @@ void screen40()
     M5.Lcd.setTextColor(YELLOW);
     M5.Lcd.setTextDatum(MC_DATUM);
     char buf[30];
-    sprintf(buf, "T[C]min: %.1f max: %.1f",tmin,tmax);
+    sprintf(buf, "T[C]");
     M5.Lcd.setTextSize(1);
-    M5.Lcd.drawString(buf,50,0,2);
-    M5.Lcd.drawLine(15, 40, 15, 200, YELLOW);
-    M5.Lcd.drawLine(15, 200, 305, 200, YELLOW);
-    
+    M5.Lcd.drawString(buf,10,0,2);
     tmax = round(tmax);
     tmin = round(tmin);
     int unit = 160/(tmax-tmin);
-    int x = 15, y = 200 - ((round(temps[0]) - tmin) * unit);
+    int t1 = tmin + (tmax-tmin)/3;
+    int t2 = tmax - (tmax-tmin)/3;
+    
+    M5.Lcd.drawLine(60, 20, 60, 189, YELLOW); // y
+    M5.Lcd.drawLine(51, 180, 300, 180, YELLOW); //x
+    sprintf(buf, "%d",hours[0]);
+    M5.Lcd.drawString(buf,60,198,2);
+
+
+    int x = 60, y = getY(round(temps[0]),tmin,unit,180);
     for (int i = 1;i<nt;i++)
     {
-      int xx = x + 4;
-      int yy = 200 - ((round(temps[i]) - tmin) * unit);
+      int xx = x + 3;
+      int yy = getY(round(temps[i]),tmin,unit,180);
       M5.Lcd.drawLine(x, y, xx, yy, YELLOW);
+      if (i%8==0||i==nt-1)
+      {
+        sprintf(buf, "%d",hours[i]);
+        M5.Lcd.drawLine(xx, 180, xx, 189, YELLOW);
+        M5.Lcd.drawString(buf,xx,198,2);
+      }
       x = xx;
       y = yy;
     }
-    M5.Lcd.drawLine(15, 200 - ((0 - tmin) * unit), 305, 200 - ((0 - tmin) * unit), WHITE);
+    M5.Lcd.setTextDatum(MR_DATUM);
+    sprintf(buf, "%.0f",tmin);
+    M5.Lcd.drawString(buf,49,180,2);
+    sprintf(buf, "%.0f",tmax);
+    int ymax = getY(round(tmax),tmin,unit,180);
+    M5.Lcd.drawString(buf,49,ymax,2);
+    M5.Lcd.drawLine(51, ymax, 60, ymax, YELLOW);
+    int yt1 = getY(t1,tmin,unit,180);
+    int yt2 = getY(t2,tmin,unit,180);
+    sprintf(buf, "%d",t1);
+    M5.Lcd.drawString(buf,49,yt1,2);
+    M5.Lcd.drawLine(51, yt1, 60, yt1, YELLOW);
+    sprintf(buf, "%d",t2);
+    M5.Lcd.drawString(buf,49,yt2,2);
+    M5.Lcd.drawLine(51, yt2, 60, yt2, YELLOW);
+    if (tmin<0||0>tmax) 
+    {
+      int yt0 = getY(0,tmin,unit,180);
+    M5.Lcd.setTextColor(WHITE);
+    M5.Lcd.drawString("0",49,yt0,2);
+    M5.Lcd.drawLine(51, yt0, 300, yt0, WHITE);
+      }
     M5.Lcd.setTextSize(1);
     M5.Lcd.setTextDatum(BL_DATUM);
+    M5.Lcd.setTextColor(YELLOW);
     M5.Lcd.drawString("<",45,240,4);
     M5.Lcd.setTextDatum(BC_DATUM);
     M5.Lcd.drawString("OK",160,240,4);
