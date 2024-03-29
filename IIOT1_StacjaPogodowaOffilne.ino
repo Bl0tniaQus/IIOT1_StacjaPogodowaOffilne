@@ -9,8 +9,8 @@ int menu_stan=1; // Display page
 int pomiary_stan=0;
 char disp_refresh=1; // Display refresh
 int drawScreen = 1;
-long timer1,timer2 = 0;
-int timerLimit1 = 5000,timerLimit2 = 8000;
+long timer1,timer2,timer3 = 0;
+int timerLimit1 = 5000,timerLimit2 = 10000;
 int temp_UB,temp_LB;
 int hum_UB,hum_LB,pres_UB,pres_LB;
 bool error;
@@ -45,6 +45,13 @@ void readPressures();
 void readHumidities();
 bool checkFiles();
 void writeMeasurements();
+void writeTLB(int val);
+void writeTUB(int val);
+void writePLB(int val);
+void writePUB(int val);
+void writeHLB(int val);
+void writeHUB(int val);
+void readBounds();
 int getY(int val, int minval, int unit, int ymin);
 //ekrany główne
 void screen1(); //data i czas
@@ -61,6 +68,7 @@ void screen9(); //menu ustawien powrót
 void screen10(); //menu ustawien data
 void screen11(); //menu ustawien czas
 void screen12(); //menu ustawien progi
+void screen45(); //menu ustawien reset
 //ekrany ustawień progów
 void screen13(); //menu ustawien progów powrót
 void screen14(); //temp lb
@@ -105,6 +113,10 @@ void setup() {
   // put your setup code here, to run once:
   Wire.begin(); // Wire init, adding the I2C bus.
   M5.begin();
+  M5.Lcd.setTextColor(WHITE);
+  M5.Lcd.setTextDatum(MC_DATUM);
+  M5.Lcd.setTextSize(3);
+  M5.Lcd.drawString("Loading...",160,120,2);
   SD.begin();
   qmp6988.init();
   temp_LB = 20; temp_UB = 24;
@@ -115,15 +127,24 @@ void setup() {
   humidities = new int[0];
   hours = new int[0];
   timer1 = millis();
-  writeMeasurements();
+  timer3 = millis();
 }
-//todo zapis na sd danych i ustawien, odczyt ustawien z sd, prognoza, komentarze i jest all
+//odczyt ustawien z sd, prognoza, komentarze i jest all
 void loop() {
    //put your main code here, to run repeatedly:
   M5.update();
   if(disp_refresh){ M5.Lcd.fillScreen(BLACK); disp_refresh = 0; }
- if (menu_stan!=20&&menu_stan!=21&&menu_stan!=22&&menu_stan!=23&&menu_stan!=24&&menu_stan!=25&&menu_stan!=26
+ if (menu_stan!=20&&menu_stan!=21&&menu_stan!=22&&menu_stan!=23&&menu_stan!=24&&menu_stan!=25
  &&menu_stan!=30&&menu_stan!=31&&menu_stan!=32&&menu_stan!=36&&menu_stan!=37) {error = false;}
+
+  if ((millis()-timer3>3600*1000)||(millis()-timer3<0))
+  {
+    writeMeasurements();
+    timer3 = millis();
+    drawScreen++;
+  }
+
+ 
   switch(menu_stan)
   {
   case 1:screen1();break;
@@ -406,18 +427,118 @@ void readHumidities()
     return;
   }
 }
-bool checkFile(const char* filename)
-{
-  return SD.exists(filename);
-}
 void writeMeasurements()
 {
-  File hoursFile = SD.open("/hours.txt",FILE_WRITE);
-  hoursFile.println("10");
-  hoursFile.close();
-  File tempsFile = SD.open("/temperature.txt",FILE_WRITE);
-  tempsFile.println("-12.5");
-  tempsFile.close();
+  readHours(); readHumidities(); readTemps(); readPressures();
+    int n = n_hours;
+    M5.Lcd.setTextColor(WHITE);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.drawString("Writing...",160,0,2);
+  if ((n_temps!=n)||(n_humidities!=n)||(n_pressures!=n)||(n>72))
+  {
+  SD.remove("/hours.txt"); 
+  SD.remove("/temperature.txt");
+  SD.remove("/pressure.txt");
+  SD.remove("/humidity.txt");
+  delete [] pressures; delete [] hours; delete [] temps; delete [] humidities;
+  n_hours = 0; n_temps = 0; n_pressures = 0; n_humidities = 0; n = 0;
+  pressures = new int [0]; hours = new int [0]; temps = new float [0]; humidities = new int [0];
+  }
+  float temp = getTemperature();
+  int hum = getHumidity();
+  int pres = getPressure();
+  int hour = getHours();
+  if (n<72)
+  {
+    char buf[10];
+ 
+    File hoursFile = SD.open("/hours.txt",FILE_APPEND);
+    sprintf(buf,"%d",hour); hoursFile.println(buf); memset(buf,0,sizeof(buf));
+    File tempFile = SD.open("/temperature.txt",FILE_APPEND);
+    sprintf(buf,"%.1f",temp); tempFile.println(buf); memset(buf,0,sizeof(buf));
+    File presFile = SD.open("/pressure.txt",FILE_APPEND);
+    sprintf(buf,"%d",pres); presFile.println(buf); memset(buf,0,sizeof(buf));
+    File humFile = SD.open("/humidity.txt",FILE_APPEND);
+    sprintf(buf,"%d",hum); humFile.println(buf); memset(buf,0,sizeof(buf));
+    hoursFile.close();
+    tempFile.close();
+    presFile.close();
+    humFile.close();
+  }
+  else if (n==72)
+  {
+    char buf [10];
+    SD.remove("/hours.txt"); SD.remove("/temperature.txt");
+    SD.remove("/pressure.txt");SD.remove("/humidity.txt");
+    File hoursFile = SD.open("/hours.txt",FILE_APPEND);
+    File tempFile = SD.open("/temperature.txt",FILE_APPEND);
+    File presFile = SD.open("/pressure.txt",FILE_APPEND);
+    File humFile = SD.open("/humidity.txt",FILE_APPEND);
+    for (int i=1;i<72;i++)
+    {
+       sprintf(buf,"%d",hours[i]); hoursFile.println(buf); memset(buf,0,sizeof(buf));
+       sprintf(buf,"%.1f",temps[i]); tempFile.println(buf); memset(buf,0,sizeof(buf));
+       sprintf(buf,"%d",pressures[i]); presFile.println(buf); memset(buf,0,sizeof(buf));
+       sprintf(buf,"%d",humidities[i]); humFile.println(buf); memset(buf,0,sizeof(buf));
+    }
+       sprintf(buf,"%d",hour); hoursFile.println(buf); memset(buf,0,sizeof(buf));
+       sprintf(buf,"%.1f",temp); tempFile.println(buf); memset(buf,0,sizeof(buf));
+       sprintf(buf,"%d",pres); presFile.println(buf); memset(buf,0,sizeof(buf));
+       sprintf(buf,"%d",hum); humFile.println(buf); memset(buf,0,sizeof(buf));
+       hoursFile.close();
+      tempFile.close();
+      presFile.close();
+      humFile.close();
+  }
+}
+void writeTLB(int val)
+{
+  char buf [7];
+  File file = SD.open("/temp_LB.txt",FILE_WRITE);
+  sprintf(buf, "%d",val);
+  file.print(buf);
+  file.close();
+}
+void writeTUB(int val)
+{
+  char buf [7];
+  File file = SD.open("/temp_UB.txt",FILE_WRITE);
+  sprintf(buf, "%d",val);
+  file.print(buf);
+  file.close();
+}
+void writePLB(int val)
+{
+  char buf [7];
+  File file = SD.open("/pres_LB.txt",FILE_WRITE);
+  sprintf(buf, "%d",val);
+  file.print(buf);
+  file.close();
+}
+void writePUB(int val)
+{
+  char buf [7];
+  File file = SD.open("/pres_UB.txt",FILE_WRITE);
+  sprintf(buf, "%d",val);
+  file.print(buf);
+  file.close();
+}
+void writeHLB(int val)
+{
+  char buf [7];
+  File file = SD.open("/hum_LB.txt",FILE_WRITE);
+  sprintf(buf, "%d",val);
+  file.print(buf);
+  file.close();
+}
+void writeHUB(int val)
+{
+  char buf [7];
+  File file = SD.open("/hum_UB.txt",FILE_WRITE);
+  sprintf(buf, "%d",val);
+  file.print(buf);
+  file.close();
 }
 int getY(int val, int minval, int unit, int ymin)
 {
@@ -475,7 +596,7 @@ void screen2()
     showBatteryLevel();
     M5.Lcd.setTextColor(YELLOW);
     M5.Lcd.setTextDatum(MC_DATUM);
-    if ((temp >= temp_UB && temp <= temp_UB+2) || (temp <= temp_LB && temp >= temp_LB - 2)) {
+    if ((temp > temp_UB && temp < temp_UB+2) || (temp <= temp_LB && temp >= temp_LB - 2)) {
       M5.Lcd.fillRect(0, 70, 320, 25, MAROON);
       M5.Lcd.fillRect(0, 170, 320, 25, MAROON);
       }
@@ -512,7 +633,7 @@ void screen3()
     M5.Lcd.fillScreen(BLACK);
     showBatteryLevel();
     M5.Lcd.setTextColor(GREEN);
-    if ((pres >= pres_UB && pres <= pres_UB+5) || (pres <= pres_LB && pres >= pres_LB - 5)) {
+    if ((pres > pres_UB && pres < pres_UB+5) || (pres <= pres_LB && pres >= pres_LB - 5)) {
       M5.Lcd.fillRect(0, 70, 320, 25, MAROON);
       M5.Lcd.fillRect(0, 170, 320, 25, MAROON);
       }
@@ -550,7 +671,7 @@ void screen4()
     M5.Lcd.fillScreen(BLACK);
     showBatteryLevel();
     M5.Lcd.setTextColor(CYAN);
-    if ((hum >= hum_UB && hum <= hum_UB+2) || (hum <= hum_LB && hum >= hum_LB - 2)) {
+    if ((hum > hum_UB && hum < hum_UB+2) || (hum <= hum_LB && hum >= hum_LB - 2)) {
       M5.Lcd.fillRect(0, 70, 320, 25, MAROON);
       M5.Lcd.fillRect(0, 170, 320, 25, MAROON);
       }
@@ -957,13 +1078,13 @@ void screen20()
     }
   if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {
-      if (temp_LB-1 <= temp_UB-2) {temp_LB--; error = false;}
+      if (temp_LB-1 <= temp_UB-2) {temp_LB--; writeTLB(temp_LB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
     else if (M5.BtnB.wasReleased()) {menu_stan = 14; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {
-      if (temp_LB+1 <= temp_UB-2) {temp_LB++; error = false;}
+      if (temp_LB+1 <= temp_UB-2) {temp_LB++; writeTLB(temp_LB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
@@ -999,13 +1120,13 @@ void screen21()
     }
   if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {
-      if (temp_UB-1 >= temp_LB+2) {temp_UB--; error = false;}
+      if (temp_UB-1 >= temp_LB+2) {temp_UB--; writeTUB(temp_UB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
     else if (M5.BtnB.wasReleased()) {menu_stan = 15; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {
-      if (temp_UB+1 >= temp_LB+2) {temp_UB++; error = false;}
+      if (temp_UB+1 >= temp_LB+2) {temp_UB++; writeTUB(temp_UB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
@@ -1041,13 +1162,13 @@ void screen22()
     }
   if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {
-      if ((pres_LB-1 <= pres_UB-10)&&(pres_LB>1)) {pres_LB--; error = false;}
+      if ((pres_LB-1 <= pres_UB-10)&&(pres_LB>1)) {pres_LB--; writePLB(pres_LB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
     else if (M5.BtnB.wasReleased()) {menu_stan = 16; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {
-      if (pres_LB+1 <= pres_UB-10) {pres_LB++; error = false;}
+      if (pres_LB+1 <= pres_UB-10) {pres_LB++; writePLB(pres_LB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
@@ -1083,13 +1204,13 @@ void screen23()
     }
   if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {
-      if (pres_UB-1 >= pres_LB+10) {pres_UB--; error = false;}
+      if (pres_UB-1 >= pres_LB+10) {pres_UB--; writePUB(pres_UB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
     else if (M5.BtnB.wasReleased()) {menu_stan = 17; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {
-      if (pres_UB-1 >= pres_LB+10) {pres_UB++; error = false;}
+      if (pres_UB-1 >= pres_LB+10) {pres_UB++; writePUB(pres_UB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
@@ -1125,13 +1246,13 @@ void screen24()
     }
   if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {
-      if ((hum_LB-1 <= hum_UB-2)&&(hum_LB>1)) {hum_LB--; error = false;}
+      if ((hum_LB-1 <= hum_UB-2)&&(hum_LB>1)) {hum_LB--; writeHLB(hum_LB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
     else if (M5.BtnB.wasReleased()) {menu_stan = 18; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {
-      if ((hum_LB+1 <= hum_UB-2)&&(hum_LB<100)) {hum_LB++; error = false;}
+      if ((hum_LB+1 <= hum_UB-2)&&(hum_LB<100)) {hum_LB++; writeHLB(hum_LB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
@@ -1167,13 +1288,13 @@ void screen25()
     }
   if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {
-      if ((hum_UB-1 >= hum_LB+2)&&(hum_UB>1)) {hum_UB--; error = false;}
+      if ((hum_UB-1 >= hum_LB+2)&&(hum_UB>1)) {hum_UB--; writeHUB(hum_UB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
     else if (M5.BtnB.wasReleased()) {menu_stan = 19; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {
-      if ((hum_UB+1 >= hum_LB+2)&&(hum_UB<100)) {hum_UB++; error = false;}
+      if ((hum_UB+1 >= hum_LB+2)&&(hum_UB<100)) {hum_UB++; writeHUB(hum_UB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
@@ -1743,7 +1864,7 @@ void screen40()
       int xx = x + 3;
       int yy = getY(round(temps[i]),tmin,unit,180);
       M5.Lcd.drawLine(x, y, xx, yy, YELLOW);
-      if (i%8==0||i==nt-1)
+      if (i%8==0||(i==nt-1&&i>66))
       {
         sprintf(buf, "%d",hours[i]);
         M5.Lcd.drawLine(xx, 180, xx, 189, YELLOW);
@@ -1915,7 +2036,7 @@ void screen42()
       int xx = x + 3;
       int yy = getY(pressures[i],pmin,unit,180);
       M5.Lcd.drawLine(x, y, xx, yy, GREEN);
-      if (i%8==0||i==np-1)
+      if (i%8==0||(i==np-1&&i>66))
       {
         sprintf(buf, "%d",hours[i]);
         M5.Lcd.drawLine(xx, 180, xx, 189, GREEN);
@@ -2078,7 +2199,7 @@ void screen44()
       int xx = x + 3;
       int yy = getY(humidities[i],hmin,unit,180);
       M5.Lcd.drawLine(x, y, xx, yy, CYAN);
-      if (i%8==0||i==nh-1)
+      if (i%8==0||(i==nh-1&&i>66))
       {
         sprintf(buf, "%d",hours[i]);
         M5.Lcd.drawLine(xx, 180, xx, 189, CYAN);
