@@ -52,6 +52,7 @@ void writePUB(int val);
 void writeHLB(int val);
 void writeHUB(int val);
 void readBounds();
+void factoryReset();
 int getY(int val, int minval, int unit, int ymin);
 //ekrany główne
 void screen1(); //data i czas
@@ -119,9 +120,7 @@ void setup() {
   M5.Lcd.drawString("Loading...",160,120,2);
   SD.begin();
   qmp6988.init();
-  temp_LB = 20; temp_UB = 24;
-  hum_LB = 30; hum_UB = 50;
-  pres_LB = 950; pres_UB = 1030;
+  readBounds();
   temps = new float[0];
   pressures = new int[0];
   humidities = new int[0];
@@ -129,13 +128,13 @@ void setup() {
   timer1 = millis();
   timer3 = millis();
 }
-//odczyt ustawien z sd, prognoza, komentarze i jest all
+//prognoza, komentarze
 void loop() {
    //put your main code here, to run repeatedly:
   M5.update();
   if(disp_refresh){ M5.Lcd.fillScreen(BLACK); disp_refresh = 0; }
  if (menu_stan!=20&&menu_stan!=21&&menu_stan!=22&&menu_stan!=23&&menu_stan!=24&&menu_stan!=25
- &&menu_stan!=30&&menu_stan!=31&&menu_stan!=32&&menu_stan!=36&&menu_stan!=37) {error = false;}
+ &&menu_stan!=30&&menu_stan!=31&&menu_stan!=32&&menu_stan!=36&&menu_stan!=37&&menu_stan!=45) {error = false;}
 
   if ((millis()-timer3>3600*1000)||(millis()-timer3<0))
   {
@@ -191,6 +190,7 @@ void loop() {
   case 42:screen42();break;
   case 43:screen43();break;
   case 44:screen44();break;
+  case 45:screen45();break;
   }
   
 
@@ -540,6 +540,72 @@ void writeHUB(int val)
   file.print(buf);
   file.close();
 }
+int readBound(const char* filename)
+{
+  char digits[7];
+  int n = 0;
+  int val = 0;
+  if (SD.exists(filename))
+  {
+    File f = SD.open(filename);
+      char znak;
+      while (f.available()){
+      znak = f.read();
+      if (znak!='\n'&&znak!='\0')
+      {
+        digits[n] = (char)znak;
+        n++;
+      }
+      else 
+      {
+        val = atoi(digits);
+        break;
+      }
+      }
+      val = atoi(digits);
+      f.close();
+  }
+  
+  return val;
+  
+}
+void readBounds()
+{
+  int tlb = readBound("/temp_LB.txt");
+  int tub = readBound("/temp_UB.txt");
+  int plb = readBound("/pres_LB.txt");
+  int pub = readBound("/pres_UB.txt");
+  int hlb = readBound("/hum_LB.txt");
+  int hub = readBound("/hum_UB.txt");
+  if (tlb<=tub-2 && tlb>-100 && tlb<200 && tub>-100 && tub < 200) {temp_LB = tlb; temp_UB = tub;}
+  else {temp_LB = 20; temp_UB = 24; writeTLB(temp_LB);writeTUB(temp_UB);}
+
+  if (plb<=pub-10 && plb>=0 && plb<10000 && pub>=0 && pub < 10000) {pres_LB = plb; pres_UB = pub;}
+  else {pres_LB = 950; pres_UB = 1050; writePLB(pres_LB);writePUB(pres_UB);}
+
+  if (hlb<=hub-2 && hlb>=0 && hlb<=100 && hub>=0 && hub <=100) {hum_LB = hlb; hum_UB = hub;}
+  else {hum_LB = 30; hum_UB = 50; writeHLB(hum_LB);writeHUB(hum_UB);}
+}
+void factoryReset()
+{
+  SD.remove("/hours.txt"); 
+  SD.remove("/temperature.txt");
+  SD.remove("/pressure.txt");
+  SD.remove("/humidity.txt");
+  SD.remove("/temp_lb.txt");
+  SD.remove("/temp_ub.txt");
+  SD.remove("/pres_lb.txt");
+  SD.remove("/pres_ub.txt");
+  SD.remove("/pres_lb.txt");
+  SD.remove("/pres_ub.txt");
+  delete [] pressures; delete [] hours; delete [] temps; delete [] humidities;
+  n_hours = 0; n_temps = 0; n_pressures = 0; n_humidities = 0;
+  pressures = new int [0]; hours = new int [0]; temps = new float [0]; humidities = new int [0];
+  readBounds();
+  setDate(2023,9,15); 
+  setTime(10, 49, 0);
+  
+}
 int getY(int val, int minval, int unit, int ymin)
 {
   return ymin - (val - minval) * unit;
@@ -810,7 +876,7 @@ void screen9()
     M5.Lcd.drawString(">",275,240,4);
     }
     if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
-    else if (M5.BtnA.wasPressed()) {menu_stan = 12; drawScreen=1; timer2 = millis();}
+    else if (M5.BtnA.wasPressed()) {menu_stan = 45; drawScreen=1; timer2 = millis();}
     else if (M5.BtnB.wasReleased()) {menu_stan = 7; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {menu_stan = 10; drawScreen=1; timer2 = millis();}
 }
@@ -882,6 +948,38 @@ void screen12()
     if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {menu_stan = 11; drawScreen=1; timer2 = millis();}
     else if (M5.BtnB.wasReleased()) {menu_stan = 14; drawScreen=1; timer2 = millis();}
+    else if (M5.BtnC.wasPressed()) {menu_stan = 45; drawScreen=1; timer2 = millis();}
+}
+void screen45()
+{
+  if (drawScreen) {
+    drawScreen--;
+    M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
+    M5.Lcd.setTextColor(WHITE);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    if (error) {M5.Lcd.setTextColor(RED);M5.Lcd.drawString("Reset complete",160,175,4);M5.Lcd.setTextColor(YELLOW);}
+    M5.Lcd.setTextColor(WHITE);
+    M5.Lcd.setTextSize(3);
+    M5.Lcd.drawString("Factory",160,60,4);
+    M5.Lcd.drawString("reset",160,120,4);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.setTextDatum(BL_DATUM);
+    M5.Lcd.drawString("<",45,240,4);
+    M5.Lcd.setTextDatum(BC_DATUM);
+    M5.Lcd.drawString("OK",160,240,4);
+    M5.Lcd.setTextDatum(BR_DATUM);
+    M5.Lcd.drawString(">",275,240,4);
+    }
+    if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
+    else if (M5.BtnA.wasPressed()) {menu_stan = 12; drawScreen=1; timer2 = millis();}
+    else if (M5.BtnB.wasReleased()) {
+      M5.Lcd.setTextDatum(MC_DATUM);
+      M5.Lcd.fillRect(0,155,320,40,BLACK);
+      M5.Lcd.drawString("resetting...",160,175,4);
+      factoryReset(); error = true;
+      drawScreen=1; timer2 = millis();
+      }
     else if (M5.BtnC.wasPressed()) {menu_stan = 9; drawScreen=1; timer2 = millis();}
 }
 void screen13()
