@@ -19,8 +19,9 @@ int n_hours = 0;
 int n_temps = 0;
 int n_pressures = 0;
 int n_humidities = 0;
-int pres1=0,humD1=0,humN1=0,tempD1=0,tempN1=0;
-int pres2=0,humD2=0,humN2=0,tempD2=0,tempN2=0;
+int pres1=0,humD1=0,humN1=0;
+int pres2=0,humD2=0,humN2=0;
+float tempD1 = 0, tempD2 = 0, tempN1 = 0, tempN2 = 0;
 float atempD1=0,atempD2=0,atempD3=0,atempN1=0,atempN2=0,atempN3=0;
 int ahumD1=0,ahumD2=0,ahumD3=0,ahumN1=0,ahumN2=0,ahumN3=0;
 int apresDN1=0,apresDN2=0,apresDN3=0;
@@ -142,7 +143,7 @@ void setup() {
 void loop() {
    //put your main code here, to run repeatedly:
   M5.update();
-  if(disp_refresh){ M5.Lcd.fillScreen(BLACK); disp_refresh = 0; }
+  //if(disp_refresh){ M5.Lcd.fillScreen(BLACK); disp_refresh = 0; }
  if (menu_stan!=20&&menu_stan!=21&&menu_stan!=22&&menu_stan!=23&&menu_stan!=24&&menu_stan!=25
  &&menu_stan!=30&&menu_stan!=31&&menu_stan!=32&&menu_stan!=36&&menu_stan!=37&&menu_stan!=45) {error = false;}
 
@@ -268,9 +269,11 @@ void showBatteryLevel()
   double voltage = M5.Axp.GetBatVoltage();
   double percentage;
   if (voltage < 3.2) {percentage = 0;}
-  else {percentage = (voltage - 3.2) * 100;}
+  else {
+    percentage = (voltage - 3.2) * 100;
+    }
   char battery_buf[6];
-  sprintf(battery_buf,"%d %%",(int)percentage);
+  sprintf(battery_buf,"%d %%",(int)round(percentage));
   M5.Lcd.setTextColor(WHITE,BLUE);
   M5.Lcd.setTextSize(1);
   M5.Lcd.setTextDatum(TR_DATUM);
@@ -619,7 +622,40 @@ void forecast()
 {
   readHours();readTemps();readHumidities();readPressures();
   int n = n_hours;
-  int h;
+  int ho;
+  int last14 = 0;
+  int last2 = 0;
+  float tTD = 0, tTN = 0;
+  int tHD = 0, tHN = 0;
+  int sP = 0;
+  for (int i=0;i<71;i++)
+  {
+    ho = hours[i];
+    if (ho>=21||ho<=8) {
+      tTN = temps[i+1]-temps[i];
+      tHN = humidities[i+1] - humidities[i];
+  }
+  else
+  {
+      tTD = temps[i+1]-temps[i];
+      tHD = humidities[i+1] - humidities[i];
+    }
+    sP += pressures[i];
+    if (ho==14) {last14 = i;}
+    if (ho==2) {last2 = i;}
+  }
+
+  tempD1 = temps[last14] + tTD;
+  tempD2 = tempD1 + 12*(tTD/71);
+  humD1 = humidities[last14] + tHD;
+  humD2 = humD1 + 12*(tHD/71);
+  tempN1 = temps[last2] + tTN;
+  tempN2 = tempN1 + 12*(tTN/71);
+  humN1 = humidities[last2] + tHN;
+  humN2 = humN1 + 12*(tHN/71);
+  pres1 = (sP+pressures[71]) / 72;
+  pres2 = pres1;
+  /*
   if ((n_temps==n)&&(n_humidities==n)&&(n_pressures==n)&&(n==72))
   {
     for (int d=0;d<3;d++)
@@ -628,8 +664,8 @@ void forecast()
       float sTD=0,sTN=0;
       for (int h=0;h<24;h++)
       {
-        h = hours[d*24+h]; //23 - 6 noc
-        if (h>=23&&h<=6) {
+        ho = hours[d*24+h]; //21 - 8 noc
+        if (ho>=21||ho<=8) {
           nN++;
           sTN+=temps[d*24+h];
           sHN+=humidities[d*24+h];
@@ -647,26 +683,51 @@ void forecast()
       //int apresDN1=0,apresDN2=0,apresDN3=0;
       if (d==0) 
       {
-        atempD1 = sTD / nD; ahumD1 = sHN / nD;
+        atempD1 = sTD / nD; ahumD1 = sHD / nD;
         atempN1 = sTN / nN; ahumN1 = sHN / nD;
-        apresDN1 = sP / (nD + nD);
+        apresDN1 = sP / (nD + nN);
       }
       else if (d==1) 
       {
-        atempD2 = sTD / nD; ahumD2 = sHN / nD;
-        atempN2 = sTN / nN; ahumN2 = sHN / nD;
-        apresDN2 = sP / (nD + nD);
+        atempD2 = sTD / nD; ahumD2 = sHD / nD;
+        atempN2 = sTN / nN; ahumN2 = sHN / nN;
+        apresDN2 = sP / (nD + nN);
       }
-      else if (d==2) 
+   //   else if (d==2) 
       {
-        atempD3 = sTD / nD; ahumD3 = sHN / nD;
-        atempN3 = sTN / nN; ahumN3 = sHN / nD;
-        apresDN3 = sP / (nD + nD);
-      }      
-    } 
-    //todo wyznacz trendy i wartości prognozowane 
+   //     atempD3 = sTD / nD; ahumD3 = sHD / nD;
+   //     atempN3 = sTN / nN; ahumN3 = sHN / nN;
+   //     apresDN3 = sP / (nD + nN);
+   //   }      
+   // } 
+    //todo wyznacz trendy i wartości prognozowane
+    float tdiffD1 = atempD2 - atempD1;
+    float tdiffD2 = atempD3 - atempD2;
+    float tdiffN1 = atempN2 - atempN1;
+    float tdiffN2 = atempN3 - atempN2;
+    int hdiffD1 = ahumD2 - ahumD1;
+    int hdiffD2 = ahumD3 - ahumD2;
+    int hdiffN1 = ahumN2 - ahumN1;
+    int hdiffN2 = ahumN3 - ahumN2;
+    int pdiff1 = apresDN2 - apresDN1;
+    int pdiff2 = apresDN3 - apresDN2;
+    //int pres1=0,humD1=0,humN1=0,tempD1=0,tempN1=0;
+    //int pres2=0,humD2=0,humN2=0,tempD2=0,tempN2=0;
+    /*
+    tempD1 = atempD3 + (tdiffD2 + tdiffD1)/ 2;
+    tempD2 = tempD1 + ((tempD1 - atempD3) + tdiffD2 + tdiffD1)/3;
+    tempN1 = atempN3 + (tdiffN2 + tdiffN1) / 2;
+    tempN2 = tempN1 + ((tempN1 - atempN3) +tdiffN2 + tdiffN1)/3;
+    humD1 = ahumD3 + (hdiffD2 + hdiffD1)/2;
+    humD2 = humD1 + ((humD1 - ahumD3) + hdiffD2 + hdiffD1)/3;
+    humN1 = ahumN3 + (hdiffN2 + hdiffN1)/2;
+    humN2 = humN1 + ((humN1 - ahumN3) + hdiffN2 + hdiffN1)/3;
+    pres1 = apresDN3 + (pdiff2 + pdiff1)/2;
+    pres2 = pres1 + ((pres1 - apresDN3) + pdiff2 + pdiff1)/3;
     
-  }
+    tempD1 = 
+    */
+  //}
     
 }
 int getY(int val, int minval, int unit, int ymin)
@@ -1911,7 +1972,7 @@ void screen39()
       {
           int hour = hours[i];
           float temp = temps[i];
-          if (hour>=23||hour<=6)
+          if (hour>=21||hour<=8)
           {
             if (n_night==0) {night_min = temp; night_max = temp;}
             else 
@@ -2086,7 +2147,7 @@ void screen41()
       {
           int hour = hours[i];
           int pres = pressures[i];
-          if (hour>=23||hour<=6)
+          if (hour>=21||hour<=8)
           {
             if (n_night==0) {night_min = pres; night_max = pres;}
             else 
@@ -2251,7 +2312,7 @@ void screen43()
       {
           int hour = hours[i];
           int hum = humidities[i];
-          if (hour>=23||hour<=6)
+          if (hour>=21||hour<=8)
           {
             if (n_night==0) {night_min = hum; night_max = hum;}
             else 
@@ -2426,10 +2487,10 @@ void screen47()
 {
     if (drawScreen)
     {
-      int pres=0,humD=0,humN=0,tempD=0,tempN=0;
-      int dayTempsAvg[3]; int dayHumsAvg[3];
-      int nightTempsAvg[3]; int nightHumsAvg[3];
-    drawScreen--;
+    forecast();
+    if (n_hours==72)
+    {
+      drawScreen--;
     char buf[15];
     M5.Lcd.fillScreen(BLACK);
     showBatteryLevel();
@@ -2442,10 +2503,10 @@ void screen47()
     M5.Lcd.drawString("Day",120,75,4);
     M5.Lcd.setTextColor(YELLOW);
     M5.Lcd.drawString("T[C]",30,115,4);
-    sprintf(buf,"%d",tempD);
+    sprintf(buf,"%.1f",tempD1);
     M5.Lcd.drawString(buf,125,115,4);
     M5.Lcd.setTextColor(CYAN);
-    sprintf(buf,"%d",humD);
+    sprintf(buf,"%d",humD1);
     M5.Lcd.drawString(buf,125,145,4);
     M5.Lcd.drawString("h[%]",30,145,4);
     M5.Lcd.setTextColor(GREEN);
@@ -2454,15 +2515,29 @@ void screen47()
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.drawString("Night",280,75,4);
     M5.Lcd.setTextColor(YELLOW);
-    sprintf(buf,"%d",tempN);
+    sprintf(buf,"%.1f",tempN1);
     M5.Lcd.drawString(buf,270,115,4);
     M5.Lcd.setTextColor(CYAN);
-    sprintf(buf,"%d",humN);
+    sprintf(buf,"%d",humN1);
     M5.Lcd.drawString(buf,270,145,4);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextColor(GREEN);
-    sprintf(buf,"%d",pres);
+    sprintf(buf,"%d",pres1);
     M5.Lcd.drawString(buf,195,175,4);
+    }
+    else
+    {
+      drawScreen--;
+      M5.Lcd.fillScreen(BLACK);
+      showBatteryLevel();
+      M5.Lcd.setTextColor(WHITE);
+      M5.Lcd.setTextDatum(MC_DATUM);
+      M5.Lcd.setTextSize(1);
+      M5.Lcd.drawString("Forecast(today)",160,40,4);
+      M5.Lcd.setTextSize(2);
+      M5.Lcd.drawString("Not enough",160,100,4);
+      M5.Lcd.drawString("data",160,155,4);
+    }
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(BL_DATUM);
     M5.Lcd.drawString("<",45,240,4);
@@ -2480,14 +2555,10 @@ void screen48()
 {
     if (drawScreen)
     {
-      int pres=0,humD=0,humN=0,tempD=0,tempN=0;
-      int dayTempsAvg[3]; int dayHumsAvg[3];
-      int nightTempsAvg[3]; int nightHumsAvg[3];
-      readHours(); readTemps(); readHumidities(); readPressures();
-      int pressure_sums = 0;
-      //for (int i)
-      //ograniczenie tylko dla 72h
-    drawScreen--;
+    forecast();
+    if (n_hours==72)
+    {
+      drawScreen--;
     char buf[15];
     M5.Lcd.fillScreen(BLACK);
     showBatteryLevel();
@@ -2500,10 +2571,10 @@ void screen48()
     M5.Lcd.drawString("Day",120,75,4);
     M5.Lcd.setTextColor(YELLOW);
     M5.Lcd.drawString("T[C]",30,115,4);
-    sprintf(buf,"%d",tempD);
+    sprintf(buf,"%.1f",tempD2);
     M5.Lcd.drawString(buf,125,115,4);
     M5.Lcd.setTextColor(CYAN);
-    sprintf(buf,"%d",humD);
+    sprintf(buf,"%d",humD2);
     M5.Lcd.drawString(buf,125,145,4);
     M5.Lcd.drawString("h[%]",30,145,4);
     M5.Lcd.setTextColor(GREEN);
@@ -2512,15 +2583,29 @@ void screen48()
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.drawString("Night",280,75,4);
     M5.Lcd.setTextColor(YELLOW);
-    sprintf(buf,"%d",tempN);
+    sprintf(buf,"%.1f",tempN2);
     M5.Lcd.drawString(buf,270,115,4);
     M5.Lcd.setTextColor(CYAN);
-    sprintf(buf,"%d",humN);
+    sprintf(buf,"%d",humN2);
     M5.Lcd.drawString(buf,270,145,4);
     M5.Lcd.setTextDatum(MC_DATUM);
     M5.Lcd.setTextColor(GREEN);
-    sprintf(buf,"%d",pres);
+    sprintf(buf,"%d",pres2);
     M5.Lcd.drawString(buf,195,175,4);
+    }
+    else
+    {
+      drawScreen--;
+      M5.Lcd.fillScreen(BLACK);
+      showBatteryLevel();
+      M5.Lcd.setTextColor(WHITE);
+      M5.Lcd.setTextDatum(MC_DATUM);
+      M5.Lcd.setTextSize(1);
+      M5.Lcd.drawString("Forecast(tomorrow)",160,40,4);
+      M5.Lcd.setTextSize(2);
+      M5.Lcd.drawString("Not enough",160,100,4);
+      M5.Lcd.drawString("data",160,155,4);
+    }
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(BL_DATUM);
     M5.Lcd.drawString("<",45,240,4);
