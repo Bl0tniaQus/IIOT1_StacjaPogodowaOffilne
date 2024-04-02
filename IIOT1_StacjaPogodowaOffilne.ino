@@ -13,6 +13,7 @@ long timer1,timer2,timer3 = 0;
 int timerLimit1 = 5000,timerLimit2 = 10000;
 int temp_UB,temp_LB;
 int hum_UB,hum_LB,pres_UB,pres_LB;
+int brightness;
 bool error;
 //tablice z danymi historycznymi
 int n_hours = 0;
@@ -51,6 +52,8 @@ void readPressures();
 void readHumidities();
 bool checkFiles();
 void writeMeasurements();
+void writeBrightness(int val);
+void readBrightness();
 void writeTLB(int val);
 void writeTUB(int val);
 void writePLB(int val);
@@ -76,7 +79,10 @@ void screen9(); //menu ustawien powrót
 void screen10(); //menu ustawien data
 void screen11(); //menu ustawien czas
 void screen12(); //menu ustawien progi
-void screen45(); //menu ustawien reset
+void screen45(); //menu ustawien jasnosc
+void screen49(); //menu ustawien reset
+//ekran ustawienia jasnosci
+void screen50();
 //ekrany ustawień progów
 void screen13(); //menu ustawien progów powrót
 void screen14(); //temp lb
@@ -125,12 +131,16 @@ void setup() {
   // put your setup code here, to run once:
   Wire.begin(); // Wire init, adding the I2C bus.
   M5.begin();
+  M5.Axp.SetSpkEnable(0);
   M5.Lcd.setTextColor(WHITE);
   M5.Lcd.setTextDatum(MC_DATUM);
   M5.Lcd.setTextSize(3);
   M5.Lcd.drawString("Loading...",160,120,2);
   SD.begin();
   qmp6988.init();
+  readBrightness();
+  M5.Axp.SetLcdVoltage(2500 + 100*brightness);
+  M5.Axp.SetSpkEnable(0);
   readBounds();
   temps = new float[0];
   pressures = new int[0];
@@ -145,7 +155,7 @@ void loop() {
   M5.update();
   //if(disp_refresh){ M5.Lcd.fillScreen(BLACK); disp_refresh = 0; }
  if (menu_stan!=20&&menu_stan!=21&&menu_stan!=22&&menu_stan!=23&&menu_stan!=24&&menu_stan!=25
- &&menu_stan!=30&&menu_stan!=31&&menu_stan!=32&&menu_stan!=36&&menu_stan!=37&&menu_stan!=45) {error = false;}
+ &&menu_stan!=30&&menu_stan!=31&&menu_stan!=32&&menu_stan!=36&&menu_stan!=37&&menu_stan!=49&&menu_stan!=50) {error = false;}
 
   if ((millis()-timer3>3600*1000)||(millis()-timer3<0))
   {
@@ -203,6 +213,8 @@ void loop() {
   case 46:screen46();break;
   case 47:screen47();break;
   case 48:screen48();break;
+  case 49:screen49();break;
+  case 50:screen50();break;
   }
 }
 
@@ -552,6 +564,42 @@ void writeHUB(int val)
   file.print(buf);
   file.close();
 }
+void writeBrightness(int val)
+{
+  char buf [7];
+  File file = SD.open("/brightness.txt",FILE_WRITE);
+  sprintf(buf, "%d",val);
+  file.print(buf);
+  file.close();
+}
+void readBrightness()
+{
+  char digits[7];
+  int n = 0;
+  int val = 0;
+  if (SD.exists("/brightness.txt"))
+  {
+    File f = SD.open("/brightness.txt");
+      char znak;
+      while (f.available()){
+      znak = f.read();
+      if (znak!='\n'&&znak!='\0')
+      {
+        digits[n] = (char)znak;
+        n++;
+      }
+      else 
+      {
+        val = atoi(digits);
+        break;
+      }
+      }
+      val = atoi(digits);
+      f.close();
+  }else {writeBrightness(4); val = 4;}
+  if (val<0 || val>8) {val = 4; writeBrightness(4);}
+  brightness = val;
+}
 int readBound(const char* filename)
 {
   char digits[7];
@@ -610,12 +658,15 @@ void factoryReset()
   SD.remove("/pres_ub.txt");
   SD.remove("/pres_lb.txt");
   SD.remove("/pres_ub.txt");
+  SD.remove("/brightness.txt");
   delete [] pressures; delete [] hours; delete [] temps; delete [] humidities;
   n_hours = 0; n_temps = 0; n_pressures = 0; n_humidities = 0;
   pressures = new int [0]; hours = new int [0]; temps = new float [0]; humidities = new int [0];
   readBounds();
+  readBrightness();
   setDate(2023,9,15); 
   setTime(10, 49, 0);
+  M5.Axp.SetLcdVoltage(2500 + 100*brightness);
   
 }
 void forecast()
@@ -654,81 +705,7 @@ void forecast()
   humN1 = humidities[last2] + tHN;
   humN2 = humN1 + 12*(tHN/71);
   pres1 = (sP+pressures[71]) / 72;
-  pres2 = pres1;
-  /*
-  if ((n_temps==n)&&(n_humidities==n)&&(n_pressures==n)&&(n==72))
-  {
-    for (int d=0;d<3;d++)
-    {
-      int nD=0,nN=0,sHD=0,sHN=0,sP=0; 
-      float sTD=0,sTN=0;
-      for (int h=0;h<24;h++)
-      {
-        ho = hours[d*24+h]; //21 - 8 noc
-        if (ho>=21||ho<=8) {
-          nN++;
-          sTN+=temps[d*24+h];
-          sHN+=humidities[d*24+h];
-          }
-        else 
-        {
-          nD++;
-          sTD+=temps[d*24+h];
-          sHD+=humidities[d*24+h];  
-        }
-        sP+=pressures[d*24+h];  
-      }
-      //float atempD1=0,atempD2=0,atempD3=0,atempN1=0,atempN2=0,atempN3=0
-      //int ahumD1=0,ahumD2=0,ahumD3=0,ahumN1=0,ahumN2=0,ahumN3=0;
-      //int apresDN1=0,apresDN2=0,apresDN3=0;
-      if (d==0) 
-      {
-        atempD1 = sTD / nD; ahumD1 = sHD / nD;
-        atempN1 = sTN / nN; ahumN1 = sHN / nD;
-        apresDN1 = sP / (nD + nN);
-      }
-      else if (d==1) 
-      {
-        atempD2 = sTD / nD; ahumD2 = sHD / nD;
-        atempN2 = sTN / nN; ahumN2 = sHN / nN;
-        apresDN2 = sP / (nD + nN);
-      }
-   //   else if (d==2) 
-      {
-   //     atempD3 = sTD / nD; ahumD3 = sHD / nD;
-   //     atempN3 = sTN / nN; ahumN3 = sHN / nN;
-   //     apresDN3 = sP / (nD + nN);
-   //   }      
-   // } 
-    //todo wyznacz trendy i wartości prognozowane
-    float tdiffD1 = atempD2 - atempD1;
-    float tdiffD2 = atempD3 - atempD2;
-    float tdiffN1 = atempN2 - atempN1;
-    float tdiffN2 = atempN3 - atempN2;
-    int hdiffD1 = ahumD2 - ahumD1;
-    int hdiffD2 = ahumD3 - ahumD2;
-    int hdiffN1 = ahumN2 - ahumN1;
-    int hdiffN2 = ahumN3 - ahumN2;
-    int pdiff1 = apresDN2 - apresDN1;
-    int pdiff2 = apresDN3 - apresDN2;
-    //int pres1=0,humD1=0,humN1=0,tempD1=0,tempN1=0;
-    //int pres2=0,humD2=0,humN2=0,tempD2=0,tempN2=0;
-    /*
-    tempD1 = atempD3 + (tdiffD2 + tdiffD1)/ 2;
-    tempD2 = tempD1 + ((tempD1 - atempD3) + tdiffD2 + tdiffD1)/3;
-    tempN1 = atempN3 + (tdiffN2 + tdiffN1) / 2;
-    tempN2 = tempN1 + ((tempN1 - atempN3) +tdiffN2 + tdiffN1)/3;
-    humD1 = ahumD3 + (hdiffD2 + hdiffD1)/2;
-    humD2 = humD1 + ((humD1 - ahumD3) + hdiffD2 + hdiffD1)/3;
-    humN1 = ahumN3 + (hdiffN2 + hdiffN1)/2;
-    humN2 = humN1 + ((humN1 - ahumN3) + hdiffN2 + hdiffN1)/3;
-    pres1 = apresDN3 + (pdiff2 + pdiff1)/2;
-    pres2 = pres1 + ((pres1 - apresDN3) + pdiff2 + pdiff1)/3;
-    
-    tempD1 = 
-    */
-  //}
-    
+  pres2 = pres1;   
 }
 int getY(int val, int minval, int unit, int ymin)
 {
@@ -1083,6 +1060,30 @@ void screen45()
     showBatteryLevel();
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(3);
+    M5.Lcd.drawString("Set",160,60,4);
+    M5.Lcd.drawString("brightn.",160,120,4);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.setTextDatum(BL_DATUM);
+    M5.Lcd.drawString("<",45,240,4);
+    M5.Lcd.setTextDatum(BC_DATUM);
+    M5.Lcd.drawString("OK",160,240,4);
+    M5.Lcd.setTextDatum(BR_DATUM);
+    M5.Lcd.drawString(">",275,240,4);
+    }
+    if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
+    else if (M5.BtnA.wasPressed()) {menu_stan = 12; drawScreen=1; timer2 = millis();}
+    else if (M5.BtnB.wasReleased()) {menu_stan = 50; drawScreen=1; timer2 = millis();}
+    else if (M5.BtnC.wasPressed()) {menu_stan = 49; drawScreen=1; timer2 = millis();}
+}
+void screen49()
+{
+  if (drawScreen) {
+    drawScreen--;
+    M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
+    M5.Lcd.setTextColor(WHITE);
+    M5.Lcd.setTextDatum(MC_DATUM);
     if (error) {M5.Lcd.setTextColor(RED);M5.Lcd.drawString("Reset complete",160,175,4);M5.Lcd.setTextColor(YELLOW);}
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextSize(3);
@@ -1097,7 +1098,7 @@ void screen45()
     M5.Lcd.drawString(">",275,240,4);
     }
     if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
-    else if (M5.BtnA.wasPressed()) {menu_stan = 12; drawScreen=1; timer2 = millis();}
+    else if (M5.BtnA.wasPressed()) {menu_stan = 45; drawScreen=1; timer2 = millis();}
     else if (M5.BtnB.wasReleased()) {
       M5.Lcd.setTextDatum(MC_DATUM);
       M5.Lcd.fillRect(0,155,320,40,BLACK);
@@ -1106,6 +1107,42 @@ void screen45()
       drawScreen=1; timer2 = millis();
       }
     else if (M5.BtnC.wasPressed()) {menu_stan = 9; drawScreen=1; timer2 = millis();}
+}
+void screen50()
+{
+  if (drawScreen) {
+    drawScreen--;
+    char buf[10];
+    sprintf(buf,"%d", brightness);
+    M5.Lcd.fillScreen(BLACK);
+    showBatteryLevel();
+    M5.Lcd.setTextColor(WHITE);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.drawString("Brightness",160,40,4);
+    if (error) {M5.Lcd.setTextColor(RED);M5.Lcd.drawString("invalid value",160,70,4);M5.Lcd.setTextColor(WHITE);}
+    M5.Lcd.setTextSize(4);
+    M5.Lcd.drawString(buf,160,135,4);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.setTextDatum(BL_DATUM);
+    M5.Lcd.drawString("-",45,240,4);
+    M5.Lcd.setTextDatum(BC_DATUM);
+    M5.Lcd.drawString("OK",160,240,4);
+    M5.Lcd.setTextDatum(BR_DATUM);
+    M5.Lcd.drawString("+",275,240,4);
+    }
+  if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
+    else if (M5.BtnA.wasPressed()) {
+      if (brightness-1 >= 0) {brightness--; writeBrightness(brightness); M5.Axp.SetLcdVoltage(2500 + 100*brightness); error = false;}
+      else {error = true;}
+      drawScreen=1; timer2 = millis();
+      }
+    else if (M5.BtnB.wasReleased()) {menu_stan = 45; drawScreen=1; timer2 = millis();}
+    else if (M5.BtnC.wasPressed()) {
+       if (brightness+1 < 9) {brightness++; writeBrightness(brightness); M5.Axp.SetLcdVoltage(2500 + 100*brightness); error = false;}
+      else {error = true;}
+      drawScreen=1; timer2 = millis();
+      }
 }
 void screen13()
 {
