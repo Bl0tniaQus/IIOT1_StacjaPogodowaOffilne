@@ -15,6 +15,7 @@ int temp_UB,temp_LB;
 int hum_UB,hum_LB,pres_UB,pres_LB;
 int brightness;
 bool error;
+bool reset_confirm;
 //tablice z danymi historycznymi
 int n_hours = 0;
 int n_temps = 0;
@@ -156,6 +157,7 @@ void loop() {
   //if(disp_refresh){ M5.Lcd.fillScreen(BLACK); disp_refresh = 0; }
  if (menu_stan!=20&&menu_stan!=21&&menu_stan!=22&&menu_stan!=23&&menu_stan!=24&&menu_stan!=25
  &&menu_stan!=30&&menu_stan!=31&&menu_stan!=32&&menu_stan!=36&&menu_stan!=37&&menu_stan!=49&&menu_stan!=50) {error = false;}
+ if (menu_stan!=49) {reset_confirm = false;}
 
   if ((millis()-timer3>3600*1000)||(millis()-timer3<0))
   {
@@ -637,13 +639,13 @@ void readBounds()
   int pub = readBound("/pres_UB.txt");
   int hlb = readBound("/hum_LB.txt");
   int hub = readBound("/hum_UB.txt");
-  if (tlb<=tub-2 && tlb>-100 && tlb<200 && tub>-100 && tub < 200) {temp_LB = tlb; temp_UB = tub;}
+  if (tlb<=tub-2 && tlb>=-40 && tlb<=120 && tub>=-40 && tub <= 120) {temp_LB = tlb; temp_UB = tub;}
   else {temp_LB = 20; temp_UB = 24; writeTLB(temp_LB);writeTUB(temp_UB);}
 
-  if (plb<=pub-10 && plb>=0 && plb<10000 && pub>=0 && pub < 10000) {pres_LB = plb; pres_UB = pub;}
+  if (plb<=pub-10 && plb>=300 && plb<=1100 && pub>=300 && pub <= 1100) {pres_LB = plb; pres_UB = pub;}
   else {pres_LB = 950; pres_UB = 1050; writePLB(pres_LB);writePUB(pres_UB);}
 
-  if (hlb<=hub-2 && hlb>=0 && hlb<=100 && hub>=0 && hub <=100) {hum_LB = hlb; hum_UB = hub;}
+  if (hlb<=hub-2 && hlb>=10 && hlb<=90 && hub>=10 && hub <=90) {hum_LB = hlb; hum_UB = hub;}
   else {hum_LB = 30; hum_UB = 50; writeHLB(hum_LB);writeHUB(hum_UB);}
 }
 void factoryReset()
@@ -696,15 +698,15 @@ void forecast()
     if (ho==2) {last2 = i;}
   }
 
-  tempD1 = temps[last14] + tTD;
-  tempD2 = tempD1 + 12*(tTD/71);
-  humD1 = humidities[last14] + tHD;
-  humD2 = humD1 + 12*(tHD/71);
-  tempN1 = temps[last2] + tTN;
-  tempN2 = tempN1 + 12*(tTN/71);
-  humN1 = humidities[last2] + tHN;
-  humN2 = humN1 + 12*(tHN/71);
-  pres1 = (sP+pressures[71]) / 72;
+  tempD1 = temps[last14] + 24*(tTD/71);
+  tempD2 = tempD1 + 24*(tTD/71);
+  humD1 = humidities[last14] + 24*(tHD/71);
+  humD2 = humD1 + 24*(tHD/71);
+  tempN1 = temps[last2] + 24*(tTN/71);
+  tempN2 = tempN1 + 24*(tTN/71);
+  humN1 = humidities[last2] + 24*(tHN/71);
+  humN2 = humN1 + 24*(tHN/71);
+  pres1 = (sP+pressures[71]) / 71;
   pres2 = pres1;   
 }
 int getY(int val, int minval, int unit, int ymin)
@@ -1085,6 +1087,7 @@ void screen49()
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextDatum(MC_DATUM);
     if (error) {M5.Lcd.setTextColor(RED);M5.Lcd.drawString("Reset complete",160,175,4);M5.Lcd.setTextColor(YELLOW);}
+    if (reset_confirm) {M5.Lcd.setTextColor(RED);M5.Lcd.drawString("OK to reset",160,175,4);M5.Lcd.setTextColor(YELLOW);}
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextSize(3);
     M5.Lcd.drawString("Factory",160,60,4);
@@ -1100,10 +1103,15 @@ void screen49()
     if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {menu_stan = 45; drawScreen=1; timer2 = millis();}
     else if (M5.BtnB.wasReleased()) {
-      M5.Lcd.setTextDatum(MC_DATUM);
+
+      if (!reset_confirm) {reset_confirm = true;}
+      else
+      {
+       M5.Lcd.setTextDatum(MC_DATUM);
       M5.Lcd.fillRect(0,155,320,40,BLACK);
       M5.Lcd.drawString("resetting...",160,175,4);
-      factoryReset(); error = true;
+      factoryReset(); error = true; reset_confirm = false;    
+      }
       drawScreen=1; timer2 = millis();
       }
     else if (M5.BtnC.wasPressed()) {menu_stan = 9; drawScreen=1; timer2 = millis();}
@@ -1338,13 +1346,13 @@ void screen20()
     }
   if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {
-      if (temp_LB-1 <= temp_UB-2) {temp_LB--; writeTLB(temp_LB);error = false;}
+      if (temp_LB-1 <= temp_UB-2 && temp_LB-1>=-40 && temp_LB-1<=120) {temp_LB--; writeTLB(temp_LB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
     else if (M5.BtnB.wasReleased()) {menu_stan = 14; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {
-      if (temp_LB+1 <= temp_UB-2) {temp_LB++; writeTLB(temp_LB);error = false;}
+      if (temp_LB+1 <= temp_UB-2 && temp_LB+1>=-40 && temp_LB+1<=120) {temp_LB++; writeTLB(temp_LB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
@@ -1380,13 +1388,13 @@ void screen21()
     }
   if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {
-      if (temp_UB-1 >= temp_LB+2) {temp_UB--; writeTUB(temp_UB);error = false;}
+      if (temp_UB-1 >= temp_LB+2 && temp_UB-1>=-40 && temp_UB-1<=120) {temp_UB--; writeTUB(temp_UB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
     else if (M5.BtnB.wasReleased()) {menu_stan = 15; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {
-      if (temp_UB+1 >= temp_LB+2) {temp_UB++; writeTUB(temp_UB);error = false;}
+      if (temp_UB+1 >= temp_LB+2 && temp_UB+1>=-40 && temp_UB+1<=120) {temp_UB++; writeTUB(temp_UB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
@@ -1422,13 +1430,13 @@ void screen22()
     }
   if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {
-      if ((pres_LB-1 <= pres_UB-10)&&(pres_LB>1)) {pres_LB--; writePLB(pres_LB);error = false;}
+      if (pres_LB-1 <= pres_UB-10 && pres_LB-1>=300 && pres_LB-1<=1100) {pres_LB--; writePLB(pres_LB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
     else if (M5.BtnB.wasReleased()) {menu_stan = 16; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {
-      if (pres_LB+1 <= pres_UB-10) {pres_LB++; writePLB(pres_LB);error = false;}
+      if (pres_LB+1 <= pres_UB-10 && pres_LB+1>=300 && pres_LB+1<=1100) {pres_LB++; writePLB(pres_LB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
@@ -1464,13 +1472,13 @@ void screen23()
     }
   if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {
-      if (pres_UB-1 >= pres_LB+10) {pres_UB--; writePUB(pres_UB);error = false;}
+      if (pres_UB-1 >= pres_LB+10 && pres_UB-1>=300 && pres_UB-1<=1100) {pres_UB--; writePUB(pres_UB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
     else if (M5.BtnB.wasReleased()) {menu_stan = 17; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {
-      if (pres_UB-1 >= pres_LB+10) {pres_UB++; writePUB(pres_UB);error = false;}
+      if (pres_UB-1 >= pres_LB+10 && pres_UB+1>=300 && pres_UB+1<=1100) {pres_UB++; writePUB(pres_UB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
@@ -1506,13 +1514,13 @@ void screen24()
     }
   if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {
-      if ((hum_LB-1 <= hum_UB-2)&&(hum_LB>1)) {hum_LB--; writeHLB(hum_LB);error = false;}
+      if (hum_LB-1 <= hum_UB-2 && hum_LB-1>=10 && hum_LB-1<=90) {hum_LB--; writeHLB(hum_LB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
     else if (M5.BtnB.wasReleased()) {menu_stan = 18; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {
-      if ((hum_LB+1 <= hum_UB-2)&&(hum_LB<100)) {hum_LB++; writeHLB(hum_LB);error = false;}
+      if (hum_LB+1 <= hum_UB-2 && hum_LB+1>=10 && hum_LB+1<=90) {hum_LB++; writeHLB(hum_LB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
@@ -1548,13 +1556,13 @@ void screen25()
     }
   if ((millis()-timer2>=timerLimit2)||(millis()-timer2<0)) {menu_stan = 1; drawScreen=1; timer1=millis();timer2=0;}
     else if (M5.BtnA.wasPressed()) {
-      if ((hum_UB-1 >= hum_LB+2)&&(hum_UB>1)) {hum_UB--; writeHUB(hum_UB);error = false;}
+      if (hum_UB-1 >= hum_LB+2 && hum_UB-1>=10 && hum_UB-1<=90) {hum_UB--; writeHUB(hum_UB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
     else if (M5.BtnB.wasReleased()) {menu_stan = 19; drawScreen=1; timer2 = millis();}
     else if (M5.BtnC.wasPressed()) {
-      if ((hum_UB+1 >= hum_LB+2)&&(hum_UB<100)) {hum_UB++; writeHUB(hum_UB);error = false;}
+      if (hum_UB+1 >= hum_LB+2 && hum_UB+1>=10 && hum_UB+1<=90) {hum_UB++; writeHUB(hum_UB);error = false;}
       else {error = true;}
       drawScreen=1; timer2 = millis();
       }
