@@ -673,7 +673,9 @@ void factoryReset()
 }
 void forecast()
 {
-  readHours();readTemps();readHumidities();readPressures();
+  readHours();
+  if (n_hours==0) {return;} 
+  readTemps();readHumidities();readPressures();
   int n = n_hours;
   int ho;
   int last14 = 0;
@@ -2007,6 +2009,10 @@ void screen39()
   int n_day = 0, n_night = 0;
   if (drawScreen) {
     drawScreen--;
+    M5.Lcd.setTextColor(WHITE);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.drawString("Reading...",160,0,2);
     readTemps();
     readHours();
   if (n_temps == n_hours)
@@ -2089,7 +2095,12 @@ void screen40()
   int nt = 0;
   if (drawScreen) {
     drawScreen--;
-    readTemps();   
+    M5.Lcd.setTextColor(WHITE);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.drawString("Reading...",160,0,2);
+    readTemps();
+    readHours(); 
       for (int i=0;i<n_temps;i++)
       {
           float temp = temps[i];
@@ -2184,6 +2195,10 @@ void screen41()
   int n_day = 0, n_night = 0;
   if (drawScreen) {
     drawScreen--;
+    M5.Lcd.setTextColor(WHITE);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.drawString("Reading...",160,0,2);
     readPressures();
     readHours();
   if (n_pressures == n_hours)
@@ -2264,7 +2279,12 @@ void screen42()
   int np = 0;
   if (drawScreen) {
     drawScreen--;
-    readPressures();   
+    M5.Lcd.setTextColor(WHITE);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.drawString("Reading...",160,0,2);
+    readPressures();
+    readHours();   
       for (int i=0;i<n_pressures;i++)
       {
           int pres = pressures[i];
@@ -2349,6 +2369,10 @@ void screen43()
   int n_day = 0, n_night = 0;
   if (drawScreen) {
     drawScreen--;
+    M5.Lcd.setTextColor(WHITE);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.drawString("Reading...",160,0,2);
     readHumidities();
     readHours();
   if (n_humidities == n_hours)
@@ -2429,7 +2453,12 @@ void screen44()
   int nh = 0;
   if (drawScreen) {
     drawScreen--;
-    readHumidities();   
+    M5.Lcd.setTextColor(WHITE);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.drawString("Reading...",160,0,2);
+    readHumidities();
+    readHours();   
       for (int i=0;i<n_humidities;i++)
       {
           int hum = humidities[i];
@@ -2532,6 +2561,10 @@ void screen47()
 {
     if (drawScreen)
     {
+    M5.Lcd.setTextColor(WHITE);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.drawString("Reading...",160,0,2);
     forecast();
     if (n_hours==72)
     {
@@ -2600,6 +2633,10 @@ void screen48()
 {
     if (drawScreen)
     {
+    M5.Lcd.setTextColor(WHITE);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.drawString("Reading...",160,0,2);
     forecast();
     if (n_hours==72)
     {
